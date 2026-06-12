@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "neevdb"
+version = "1.0.0"
+authors = [
+  { name = "Manish Dange" },
+]
+description = "A lightweight file-based database engine built with pure Python"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "MIT" }
+keywords = ["database", "json", "lightweight", "sql", "query", "engine"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
+    "Topic :: Database :: Database Engines/Servers",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+]
+
+[project.urls]
+Homepage = "https://github.com/manish780386/NeevDB.git"
+Repository = "https://github.com/manish780386/NeevDB.git"
+"Bug Tracker" = "https://github.com/manish780386/NeevDB/issues"
+
+[project.scripts]
+neevdb = "cli:main"
