@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeevDB — Lightweight Python Database</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f9f9fb;--bg3:#f3f3f7;
+  --border:#e4e4ec;--border2:#d0d0de;
+  --text:#111118;--muted:#6b6b80;--hint:#9898b0;
+  --accent:#5b5bd6;--accent-bg:#eeeeff;--accent-text:#3a3a9e;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-text:#15803d;
+  --red:#dc2626;--red-bg:#fef2f2;
+  --yellow:#d97706;--yellow-bg:#fffbeb;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+  --radius:8px;--radius-lg:12px;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);font-size:15px;color:var(--text);background:var(--bg);line-height:1.6}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── Top nav ── */
+.topnav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:56px;border-bottom:1px solid var(--border);
+  background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);
+  display:flex;align-items:center;padding:0 1.5rem;gap:1.5rem;
+}
+.logo{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:8px}
+.logo-badge{background:var(--accent);color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;font-family:var(--mono)}
+.topnav-links{display:flex;gap:0.25rem;margin-left:auto;align-items:center}
+.topnav-links a{color:var(--muted);text-decoration:none;font-size:13px;padding:5px 10px;border-radius:6px;transition:all .15s}
+.topnav-links a:hover{color:var(--text);background:var(--bg3)}
+.topnav-links .btn-nav{background:var(--text);color:#fff;font-size:12px;padding:6px 14px;border-radius:6px;transition:opacity .15s}
+.topnav-links .btn-nav:hover{opacity:0.85;background:var(--text)}
+
+/* ── Layout ── */
+.layout{display:grid;grid-template-columns:240px 1fr 200px;min-height:100vh;padding-top:56px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar,.toc{display:none}}
+
+/* ── Left sidebar ── */
+.sidebar{
+  position:sticky;top:56px;height:calc(100vh - 56px);
+  overflow-y:auto;padding:1.5rem 0;
+  border-right:1px solid var(--border);
+}
+.sidebar-group{margin-bottom:1.5rem;padding:0 1rem}
+.sidebar-label{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:0.08em;text-transform:uppercase;padding:0 0.5rem;margin-bottom:0.4rem}
+.sidebar-link{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:6px;transition:all .15s;cursor:pointer}
+.sidebar-link:hover{color:var(--text);background:var(--bg3)}
+.sidebar-link.active{color:var(--accent);background:var(--accent-bg);font-weight:500}
+.sidebar-link .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0.5;flex-shrink:0}
+
+/* ── Main content ── */
+.main{min-width:0;padding:2.5rem 3rem;max-width:780px}
+@media(max-width:1100px){.main{padding:2rem 1.5rem}}
+
+/* ── Right TOC ── */
+.toc{position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;padding:1.5rem 1rem}
+.toc-label{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem}
+.toc-link{display:block;font-size:12px;color:var(--hint);text-decoration:none;padding:3px 0 3px 10px;border-left:2px solid transparent;transition:all .15s;line-height:1.4}
+.toc-link:hover,.toc-link.active{color:var(--accent);border-left-color:var(--accent)}
+
+/* ── Hero ── */
+.hero{padding:3rem 0 2.5rem;border-bottom:1px solid var(--border);margin-bottom:3rem}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--green-text);background:var(--green-bg);padding:4px 10px;border-radius:20px;margin-bottom:1.25rem;font-weight:500}
+.hero-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
+.hero h1{font-size:2.25rem;font-weight:600;letter-spacing:-0.04em;line-height:1.15;margin-bottom:1rem;color:var(--text)}
+.hero h1 span{color:var(--accent)}
+.hero-desc{font-size:16px;color:var(--muted);max-width:540px;line-height:1.7;margin-bottom:2rem}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{padding:8px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:var(--sans)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{opacity:0.88}
+.btn-ghost{background:var(--bg);color:var(--text);border-color:var(--border2)}
+.btn-ghost:hover{background:var(--bg3);border-color:var(--border2)}
+.install-block{display:inline-flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px;font-family:var(--mono);font-size:13px;cursor:pointer;transition:border-color .15s}
+.install-block:hover{border-color:var(--accent)}
+.install-block .prefix{color:var(--hint)}
+.install-block .cmd{color:var(--text)}
+.install-block .copy-lbl{font-size:11px;color:var(--hint);margin-left:4px}
+
+/* ── Stats strip ── */
+.stats{display:flex;gap:2rem;padding:1.25rem 0;border-top:1px solid var(--border);margin-top:2rem}
+.stat-item{display:flex;flex-direction:column;gap:2px}
+.stat-val{font-size:1.25rem;font-weight:600;color:var(--text);font-family:var(--mono)}
+.stat-lbl{font-size:12px;color:var(--hint)}
+
+/* ── Section headings ── */
+.section-anchor{scroll-margin-top:72px}
+.page-title{font-size:1.75rem;font-weight:600;letter-spacing:-0.03em;margin-bottom:0.5rem;color:var(--text)}
+.page-desc{font-size:15px;color:var(--muted);margin-bottom:2rem;line-height:1.7}
+h2.doc-h2{font-size:1.125rem;font-weight:600;margin:2.5rem 0 0.75rem;color:var(--text);letter-spacing:-0.02em;scroll-margin-top:72px}
+h3.doc-h3{font-size:14px;font-weight:600;margin:1.5rem 0 0.5rem;color:var(--text)}
+p.doc-p{font-size:14px;color:var(--muted);margin-bottom:0.75rem;line-height:1.75}
+
+/* ── Code blocks ── */
+pre.code{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:1.125rem 1.25rem;
+  font-family:var(--mono);font-size:12.5px;overflow-x:auto;
+  line-height:1.85;margin:0.75rem 0 1.25rem;position:relative;
+}
+pre.code .copy-btn{
+  position:absolute;top:10px;right:10px;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--hint);font-size:11px;padding:3px 8px;
+  border-radius:5px;cursor:pointer;font-family:var(--sans);
+  opacity:0;transition:opacity .15s;
+}
+pre.code:hover .copy-btn{opacity:1}
+pre.code .copy-btn:hover{color:var(--text)}
+.kw{color:#7c3aed}.str{color:#059669}.cm{color:#9ca3af}
+.fn{color:#2563eb}.num{color:#d97706}.cls{color:#db2777}
+code.inline{font-family:var(--mono);font-size:12px;background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--accent-text);border:1px solid var(--border)}
+
+/* ── Callouts ── */
+.callout{display:flex;gap:10px;padding:12px 14px;border-radius:var(--radius);margin:1rem 0;font-size:13px;line-height:1.6}
+.callout-info{background:var(--accent-bg);border:1px solid #c7c7f5;color:var(--accent-text)}
+.callout-tip{background:var(--green-bg);border:1px solid #bbf7d0;color:var(--green-text)}
+.callout-warn{background:var(--yellow-bg);border:1px solid #fde68a;color:#92400e}
+.callout-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+
+/* ── Table ── */
+.doc-table{width:100%;border-collapse:collapse;font-size:13px;margin:1rem 0 1.5rem}
+.doc-table th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:500;font-size:12px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.doc-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+.doc-table td:first-child{font-family:var(--mono);color:var(--accent-text);font-size:12px}
+.doc-table tr:last-child td{border-bottom:none}
+
+/* ── Playground ── */
+.pg-wrap{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin:1.25rem 0}
+.pg-topbar{display:flex;align-items:center;gap:8px;padding:0.75rem 1rem;background:var(--bg2);border-bottom:1px solid var(--border)}
+.pg-dot{width:11px;height:11px;border-radius:50%}
+.pg-dot-r{background:#ff5f57}.pg-dot-y{background:#febc2e}.pg-dot-g{background:#28c840}
+.pg-file{font-family:var(--mono);font-size:12px;color:var(--hint);margin-left:6px}
+.pg-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0.75rem 1rem;background:var(--bg);border-bottom:1px solid var(--border)}
+.pg-chip{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:5px;background:var(--bg2);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.pg-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.pg-body{display:grid;grid-template-columns:1fr 1fr;min-height:300px}
+@media(max-width:640px){.pg-body{grid-template-columns:1fr}}
+.pg-pane{display:flex;flex-direction:column}
+.pg-pane-hdr{padding:0.5rem 1rem;font-size:11px;font-family:var(--mono);color:var(--hint);border-bottom:1px solid var(--border);letter-spacing:0.06em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
+.pg-pane-r{border-left:1px solid var(--border)}
+textarea#qinput{
+  flex:1;background:var(--bg);border:none;outline:none;
+  padding:1rem;font-family:var(--mono);font-size:13px;
+  color:var(--text);resize:none;line-height:1.8;min-height:200px;
+}
+.pg-runbar{display:flex;align-items:center;gap:10px;padding:0.625rem 1rem;background:var(--bg2);border-top:1px solid var(--border)}
+.pg-run{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:opacity .15s}
+.pg-run:hover{opacity:0.85}
+.pg-hint{font-size:11px;color:var(--hint);font-family:var(--mono)}
+.pg-out{flex:1;padding:1rem;font-family:var(--mono);font-size:12px;overflow-y:auto;white-space:pre;line-height:1.85;background:var(--bg);color:var(--text);min-height:200px}
+.pg-rowcount{font-size:11px;color:var(--hint);font-family:var(--mono)}
+.pg-err{color:var(--red)}.pg-ok{color:var(--green)}.pg-dim{color:var(--hint)}
+.pg-col{color:var(--accent-text);font-weight:500}
+.pg-sep{color:var(--border2)}
+
+/* ── Divider ── */
+.doc-hr{border:none;border-top:1px solid var(--border);margin:3rem 0}
+
+/* ── Badges ── */
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;font-family:var(--mono);vertical-align:middle;margin-left:6px}
+.badge-get{background:var(--green-bg);color:var(--green-text)}
+.badge-new{background:var(--accent-bg);color:var(--accent-text)}
+
+/* ── Footer ── */
+footer{border-top:1px solid var(--border);padding:2rem 3rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+footer p{font-size:13px;color:var(--hint)}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--text)}
+.footer-links{display:flex;gap:1.25rem}
+</style>
+</head>
+<body>
+
+<!-- ── Top nav ── -->
+<nav class="topnav">
+  <a class="logo" href="#">
+    NeevDB
+    <span class="logo-badge">v1.0</span>
+  </a>
+  <div class="topnav-links">
+    <a href="#playground">Playground</a>
+    <a href="#docs">Docs</a>
+    <a href="https://github.com/manish780386/NeevDB" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/neevdb" target="_blank" class="btn-nav">PyPI ↗</a>
+  </div>
+</nav>
+
+<div class="layout">
+
+<!-- ── Left sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-group">
+    <div class="sidebar-label">Overview</div>
+    <a class="sidebar-link active" onclick="scrollTo('hero')"><span class="dot"></span>Introduction</a>
+    <a class="sidebar-link" onclick="scrollTo('playground')"><span class="dot"></span>Playground</a>
+  </div>
+  <div class="sidebar-group">
+    <div class="sidebar-label">Getting started</div>
+    <a class="sidebar-link" onclick="scrollTo('install')"><span class="dot"></span>Installation</a>
+    <a class="sidebar-link" onclick="scrollTo('connect')"><span class="dot"></span>Connect</a>
+    <a class="sidebar-link" onclick="scrollTo('tables')"><span class="dot"></span>Tables</a>
+  </div>
+  <div class="sidebar-group">
+    <div class="sidebar-label">CRUD</div>
+    <a class="sidebar-link" onclick="scrollTo('insert')"><span class="dot"></span>Insert</a>
+    <a class="sidebar-link" onclick="scrollTo('find')"><span class="dot"></span>Find</a>
+    <a class="sidebar-link" onclick="scrollTo('update')"><span class="dot"></span>Update</a>
+    <a class="sidebar-link" onclick="scrollTo('delete')"><span class="dot"></span>Delete</a>
+  </div>
+  <div class="sidebar-group">
+    <div class="sidebar-label">Query engine</div>
+    <a class="sidebar-link" onclick="scrollTo('select')"><span class="dot"></span>SELECT</a>
+    <a class="sidebar-link" onclick="scrollTo('where')"><span class="dot"></span>WHERE</a>
+    <a class="sidebar-link" onclick="scrollTo('orderby')"><span class="dot"></span>ORDER BY</a>
+    <a class="sidebar-link" onclick="scrollTo('limit')"><span class="dot"></span>LIMIT</a>
+  </div>
+  <div class="sidebar-group">
+    <div class="sidebar-label">CLI</div>
+    <a class="sidebar-link" onclick="scrollTo('cli')"><span class="dot"></span>CLI shell</a>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+
+  <!-- Hero -->
+  <section id="hero" class="hero section-anchor">
+    <div class="hero-eyebrow">Stable · v1.0.0 released</div>
+    <h1>The database engine<br>you can <span>actually read</span></h1>
+    <p class="hero-desc">NeevDB is a lightweight, file-based database built from scratch in pure Python. No dependencies. No setup. Just <code class="inline">pip install</code> and go.</p>
+    <div class="hero-actions">
+      <div class="install-block" onclick="copyCmd()">
+        <span class="prefix">$</span>
+        <span class="cmd">pip install neevdb</span>
+        <span class="copy-lbl" id="clbl">copy</span>
+      </div>
+      <a href="#playground" class="btn btn-primary">Try in browser</a>
+      <a href="#docs" class="btn btn-ghost">Read docs</a>
+    </div>
+    <div class="stats">
+      <div class="stat-item"><span class="stat-val">0</span><span class="stat-lbl">dependencies</span></div>
+      <div class="stat-item"><span class="stat-val">5</span><span class="stat-lbl">source files</span></div>
+      <div class="stat-item"><span class="stat-val">Python 3.7+</span><span class="stat-lbl">required</span></div>
+      <div class="stat-item"><span class="stat-val">MIT</span><span class="stat-lbl">license</span></div>
+    </div>
+  </section>
+
+  <!-- Playground -->
+  <section id="playground" class="section-anchor">
+    <h2 class="doc-h2" style="margin-top:0">Live playground</h2>
+    <p class="doc-p">No install needed. A sample database with <code class="inline">users</code> and <code class="inline">products</code> tables is preloaded. Write a query and press Run — or pick a sample below.</p>
+
+    <div class="pg-wrap">
+      <div class="pg-topbar">
+        <div class="pg-dot pg-dot-r"></div>
+        <div class="pg-dot pg-dot-y"></div>
+        <div class="pg-dot pg-dot-g"></div>
+        <span class="pg-file">playground.py — NeevDB interactive</span>
+      </div>
+      <div class="pg-chips">
+        <button class="pg-chip" onclick="qs('SELECT * FROM users')">SELECT *</button>
+        <button class="pg-chip" onclick="qs('SELECT * FROM users WHERE age > 20')">WHERE age &gt; 20</button>
+        <button class="pg-chip" onclick="qs('SELECT name, city FROM users ORDER BY age DESC')">ORDER BY age DESC</button>
+        <button class="pg-chip" onclick="qs('SELECT * FROM users LIMIT 3')">LIMIT 3</button>
+        <button class="pg-chip" onclick="qs('SELECT * FROM products WHERE price < 5000')">Products &lt; 5000</button>
+        <button class="pg-chip" onclick="qs('SELECT name, price FROM products ORDER BY price DESC LIMIT 3')">Top 3 products</button>
+        <button class="pg-chip" onclick="qs('SHOW TABLES')">SHOW TABLES</button>
+        <button class="pg-chip" onclick="qs('INSERT INTO users name=Manish age=21 city=Indore')">INSERT row</button>
+        <button class="pg-chip" onclick="qs('SELECT * FROM users WHERE city = Mumbai')">city = Mumbai</button>
+        <button class="pg-chip" onclick="qs('SELECT name FROM users WHERE age >= 25 ORDER BY name')">age &gt;= 25</button>
+      </div>
+      <div class="pg-body">
+        <div class="pg-pane">
+          <div class="pg-pane-hdr"><span>Query</span><span style="color:var(--accent-text);font-size:10px">Ctrl+Enter to run</span></div>
+          <textarea id="qinput" spellcheck="false">SELECT * FROM users</textarea>
+          <div class="pg-runbar">
+            <button class="pg-run" onclick="runQ()">&#9654; Run</button>
+            <span class="pg-hint">Ctrl+Enter</span>
+          </div>
+        </div>
+        <div class="pg-pane pg-pane-r">
+          <div class="pg-pane-hdr"><span>Output</span><span class="pg-rowcount" id="rcount"></span></div>
+          <div class="pg-out" id="qout"><span class="pg-dim">// results appear here</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="doc-hr" id="docs">
+
+  <!-- Install -->
+  <section id="install" class="section-anchor">
+    <h1 class="page-title">Getting started</h1>
+    <p class="page-desc">NeevDB is on PyPI. Install it with pip, import it, and you have a working database in three lines.</p>
+
+    <h2 class="doc-h2">Installation</h2>
+    <p class="doc-p">Requires Python 3.7 or newer. No other dependencies.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># Install from PyPI</span>
+pip install neevdb
+
+<span class="cm"># Verify</span>
+pip show neevdb</pre>
+  </section>
+
+  <!-- Connect -->
+  <section id="connect" class="section-anchor">
+    <h2 class="doc-h2">Connect to a database</h2>
+    <p class="doc-p">Pass a file path to <code class="inline">NeevDB()</code>. The file is created automatically if it doesn't exist. All data is stored as human-readable JSON.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="kw">from</span> neevdb <span class="kw">import</span> NeevDB
+
+<span class="cm"># Creates 'mydata.json' if it doesn't exist</span>
+db = <span class="fn">NeevDB</span>(<span class="str">"mydata.json"</span>)
+
+<span class="cm"># Defaults to 'neevdb.json'</span>
+db = <span class="fn">NeevDB</span>()</pre>
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span>The JSON file is fully human-readable. Open it in any text editor to inspect or back up your data.</span>
+    </div>
+  </section>
+
+  <!-- Tables -->
+  <section id="tables" class="section-anchor">
+    <h2 class="doc-h2">Tables</h2>
+    <p class="doc-p">Tables are collections of records — like sheets in a spreadsheet. Create one before inserting data.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># Create a table</span>
+db.<span class="fn">create_table</span>(<span class="str">"users"</span>)
+
+<span class="cm"># List all tables</span>
+db.<span class="fn">list_tables</span>()
+<span class="cm"># → ['users']</span>
+
+<span class="cm"># Delete a table permanently</span>
+db.<span class="fn">drop_table</span>(<span class="str">"users"</span>)</pre>
+  </section>
+
+  <hr class="doc-hr">
+
+  <!-- Insert -->
+  <section id="insert" class="section-anchor">
+    <h1 class="page-title">CRUD operations</h1>
+    <p class="page-desc">The four core operations — Create, Read, Update, Delete — cover everything you need to manage data.</p>
+
+    <h2 class="doc-h2">Insert</h2>
+    <p class="doc-p">Add a new record to a table. Every record automatically gets <code class="inline">_id</code> and <code class="inline">_created_at</code> fields.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>record = db.<span class="fn">insert</span>(<span class="str">"users"</span>, {
+    <span class="str">"name"</span>: <span class="str">"Alice"</span>,
+    <span class="str">"age"</span>:  <span class="num">25</span>,
+    <span class="str">"city"</span>: <span class="str">"Mumbai"</span>
+})
+
+<span class="cm"># Returns the full record:</span>
+<span class="cm"># { name: Alice, age: 25, _id: 1, _created_at: 2026-01-01T... }</span></pre>
+  </section>
+
+  <!-- Find -->
+  <section id="find" class="section-anchor">
+    <h2 class="doc-h2">Find</h2>
+    <p class="doc-p">Read records using <code class="inline">find_all()</code> to get everything, or <code class="inline">find()</code> with a condition function to filter.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># All records</span>
+all_users = db.<span class="fn">find_all</span>(<span class="str">"users"</span>)
+
+<span class="cm"># Records matching a condition</span>
+adults = db.<span class="fn">find</span>(<span class="str">"users"</span>, <span class="kw">lambda</span> r: r[<span class="str">"age"</span>] > <span class="num">18</span>)
+
+<span class="cm"># Mumbai users only</span>
+local = db.<span class="fn">find</span>(<span class="str">"users"</span>, <span class="kw">lambda</span> r: r[<span class="str">"city"</span>] == <span class="str">"Mumbai"</span>)
+
+<span class="cm"># Count records</span>
+total = db.<span class="fn">count</span>(<span class="str">"users"</span>)  <span class="cm"># → 5</span></pre>
+  </section>
+
+  <!-- Update -->
+  <section id="update" class="section-anchor">
+    <h2 class="doc-h2">Update</h2>
+    <p class="doc-p">Update all records matching a condition. Pass new field values as a dictionary. Returns the count of updated rows.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>updated = db.<span class="fn">update</span>(
+    <span class="str">"users"</span>,
+    <span class="kw">lambda</span> r: r[<span class="str">"name"</span>] == <span class="str">"Alice"</span>,   <span class="cm"># condition</span>
+    {<span class="str">"city"</span>: <span class="str">"Delhi"</span>, <span class="str">"age"</span>: <span class="num">26</span>}       <span class="cm"># new values</span>
+)
+<span class="cm"># updated → 1</span></pre>
+  </section>
+
+  <!-- Delete -->
+  <section id="delete" class="section-anchor">
+    <h2 class="doc-h2">Delete</h2>
+    <p class="doc-p">Delete all records matching a condition. Returns the count of deleted rows.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>deleted = db.<span class="fn">delete</span>(
+    <span class="str">"users"</span>,
+    <span class="kw">lambda</span> r: r[<span class="str">"age"</span>] < <span class="num">18</span>
+)
+<span class="cm"># deleted → 1</span></pre>
+    <div class="callout callout-warn">
+      <span class="callout-icon">⚠️</span>
+      <span>Delete is permanent. There is no undo. Double-check your condition before running.</span>
+    </div>
+  </section>
+
+  <hr class="doc-hr">
+
+  <!-- SELECT -->
+  <section id="select" class="section-anchor">
+    <h1 class="page-title">Query engine</h1>
+    <p class="page-desc">Run SQL-like query strings with <code class="inline">db.query()</code>. Combine SELECT, WHERE, ORDER BY, and LIMIT freely.</p>
+
+    <h2 class="doc-h2">SELECT</h2>
+    <p class="doc-p">Use <code class="inline">SELECT *</code> for all columns, or name specific columns separated by commas.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># All columns</span>
+db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users"</span>)
+
+<span class="cm"># Specific columns only</span>
+db.<span class="fn">query</span>(<span class="str">"SELECT name, city FROM users"</span>)
+
+<span class="cm"># Combined with other clauses</span>
+db.<span class="fn">query</span>(<span class="str">"SELECT name FROM users WHERE age > 18 ORDER BY name LIMIT 5"</span>)</pre>
+  </section>
+
+  <!-- WHERE -->
+  <section id="where" class="section-anchor">
+    <h2 class="doc-h2">WHERE</h2>
+    <p class="doc-p">Filter records by a condition. Works with text fields and number fields.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE age > 18"</span>)
+db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE city = Mumbai"</span>)
+db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE age != 25"</span>)
+db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE age >= 21"</span>)</pre>
+
+    <table class="doc-table">
+      <thead><tr><th>Operator</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>=</td><td>Equal to</td><td>WHERE city = Mumbai</td></tr>
+        <tr><td>!=</td><td>Not equal to</td><td>WHERE status != inactive</td></tr>
+        <tr><td>&gt;</td><td>Greater than</td><td>WHERE age &gt; 18</td></tr>
+        <tr><td>&lt;</td><td>Less than</td><td>WHERE price &lt; 500</td></tr>
+        <tr><td>&gt;=</td><td>Greater or equal</td><td>WHERE score &gt;= 90</td></tr>
+        <tr><td>&lt;=</td><td>Less or equal</td><td>WHERE stock &lt;= 10</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ORDER BY -->
+  <section id="orderby" class="section-anchor">
+    <h2 class="doc-h2">ORDER BY</h2>
+    <p class="doc-p">Sort results by any field. Default is ascending (A→Z, 0→9). Add <code class="inline">DESC</code> to reverse.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># Ascending (default)</span>
+db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users ORDER BY name"</span>)
+
+<span class="cm"># Descending — highest first</span>
+db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users ORDER BY age DESC"</span>)</pre>
+  </section>
+
+  <!-- LIMIT -->
+  <section id="limit" class="section-anchor">
+    <h2 class="doc-h2">LIMIT</h2>
+    <p class="doc-p">Return only the first N records. Useful combined with ORDER BY to get top results.</p>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># First 5 records</span>
+db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users LIMIT 5"</span>)
+
+<span class="cm"># Top 3 highest-priced products</span>
+db.<span class="fn">query</span>(<span class="str">"SELECT name, price FROM products ORDER BY price DESC LIMIT 3"</span>)</pre>
+  </section>
+
+  <hr class="doc-hr">
+
+  <!-- CLI -->
+  <section id="cli" class="section-anchor">
+    <h1 class="page-title">CLI shell</h1>
+    <p class="page-desc">Run queries from your terminal without writing any Python. Launch the shell with one command.</p>
+
+    <h2 class="doc-h2">Starting the shell</h2>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># Default database (neevdb.json)</span>
+python cli.py
+
+<span class="cm"># Specific database file</span>
+python cli.py mydata.json</pre>
+
+    <h2 class="doc-h2">CLI commands</h2>
+    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>NeevDB &gt; SHOW TABLES
+NeevDB &gt; CREATE TABLE users
+NeevDB &gt; INSERT INTO users name=Alice age=25 city=Mumbai
+NeevDB &gt; SELECT * FROM users WHERE age &gt; 18
+NeevDB &gt; SELECT * FROM users ORDER BY age DESC LIMIT 5
+NeevDB &gt; DELETE FROM users WHERE name = Alice
+NeevDB &gt; DROP TABLE users
+NeevDB &gt; HELP
+NeevDB &gt; EXIT</pre>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">ℹ️</span>
+      <span>The CLI supports the same WHERE operators and ORDER BY / LIMIT syntax as the Python query engine.</span>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── Right TOC ── -->
+<aside class="toc">
+  <div class="toc-label">On this page</div>
+  <a class="toc-link" onclick="scrollTo('hero')">Introduction</a>
+  <a class="toc-link" onclick="scrollTo('playground')">Playground</a>
+  <a class="toc-link" onclick="scrollTo('install')">Installation</a>
+  <a class="toc-link" onclick="scrollTo('connect')">Connect</a>
+  <a class="toc-link" onclick="scrollTo('tables')">Tables</a>
+  <a class="toc-link" onclick="scrollTo('insert')">Insert</a>
+  <a class="toc-link" onclick="scrollTo('find')">Find</a>
+  <a class="toc-link" onclick="scrollTo('update')">Update</a>
+  <a class="toc-link" onclick="scrollTo('delete')">Delete</a>
+  <a class="toc-link" onclick="scrollTo('select')">SELECT</a>
+  <a class="toc-link" onclick="scrollTo('where')">WHERE</a>
+  <a class="toc-link" onclick="scrollTo('orderby')">ORDER BY</a>
+  <a class="toc-link" onclick="scrollTo('limit')">LIMIT</a>
+  <a class="toc-link" onclick="scrollTo('cli')">CLI shell</a>
+</aside>
+
+</div>
+
+<footer>
+  <p>Built by <strong>Manish Dange</strong> &nbsp;·&nbsp; <a href="https://github.com/manish780386/NeevDB">GitHub</a> &nbsp;·&nbsp; <a href="https://pypi.org/project/neevdb">PyPI</a></p>
+  <p style="font-size:12px;margin-top:4px">"Neev" means foundation in Hindi.</p>
+</footer>
+
+<script>
+// ── Scrolling ──
+function scrollTo(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'})}
+
+// ── Copy install cmd ──
+function copyCmd(){
+  navigator.clipboard.writeText('pip install neevdb');
+  const el=document.getElementById('clbl');
+  el.textContent='copied!';
+  setTimeout(()=>el.textContent='copy',2000);
+}
+
+// ── Copy code blocks ──
+function cp(btn){
+  const pre=btn.parentElement;
+  const text=[...pre.childNodes].filter(n=>n.nodeType===3||n.tagName!=='BUTTON').map(n=>n.textContent).join('');
+  navigator.clipboard.writeText(text.trim());
+  btn.textContent='copied!';
+  setTimeout(()=>btn.textContent='copy',2000);
+}
+
+// ── In-browser DB ──
+const DB={
+  tables:{
+    users:[
+      {_id:1,name:"Alice",age:25,city:"Mumbai",_created_at:"2026-01-01"},
+      {_id:2,name:"Bob",age:17,city:"Delhi",_created_at:"2026-01-02"},
+      {_id:3,name:"Carol",age:30,city:"Pune",_created_at:"2026-01-03"},
+      {_id:4,name:"Dev",age:22,city:"Mumbai",_created_at:"2026-01-04"},
+      {_id:5,name:"Esha",age:19,city:"Delhi",_created_at:"2026-01-05"},
+      {_id:6,name:"Farhan",age:28,city:"Bangalore",_created_at:"2026-01-06"},
+      {_id:7,name:"Gita",age:35,city:"Chennai",_created_at:"2026-01-07"},
+    ],
+    products:[
+      {_id:1,name:"Laptop",price:45000,category:"Electronics",stock:10},
+      {_id:2,name:"Phone",price:15000,category:"Electronics",stock:25},
+      {_id:3,name:"Headphones",price:2500,category:"Electronics",stock:50},
+      {_id:4,name:"Desk",price:8000,category:"Furniture",stock:5},
+      {_id:5,name:"Chair",price:3500,category:"Furniture",stock:12},
+      {_id:6,name:"Notebook",price:150,category:"Stationery",stock:100},
+    ]
+  },
+  nextId:{users:8,products:7}
+};
+
+const OPS={"=":(_a,b)=>String(_a)===String(b),"==":(_a,b)=>String(_a)===String(b),"!=":(_a,b)=>String(_a)!==String(b),">":(_a,b)=>parseFloat(_a)>parseFloat(b),"<":(_a,b)=>parseFloat(_a)<parseFloat(b),">=":(_a,b)=>parseFloat(_a)>=parseFloat(b),"<=":(_a,b)=>parseFloat(_a)<=parseFloat(b)};
+
+function parse(raw){
+  const q=raw.trim(),up=q.toUpperCase();
+  if(up==="SHOW TABLES") return{type:"tables"};
+  if(up.startsWith("INSERT INTO")){
+    const m=q.match(/INSERT\s+INTO\s+(\w+)\s+(.+)/i);
+    if(!m)return{type:"error",msg:"Syntax: INSERT INTO table key=val"};
+    const t=m[1];
+    if(!DB.tables[t])return{type:"error",msg:`Table '${t}' not found.`};
+    const rec={};
+    for(const[,k,v]of m[2].matchAll(/(\w+)=(".*?"|'.*?'|\S+)/g)){
+      const val=v.replace(/^["']|["']$/g,'');
+      rec[k]=isNaN(val)?val:parseFloat(val);
+    }
+    rec._id=DB.nextId[t]++;
+    rec._created_at=new Date().toISOString().slice(0,10);
+    DB.tables[t].push(rec);
+    return{type:"insert",rec};
+  }
+  if(!up.startsWith("SELECT"))return{type:"error",msg:"Supported: SELECT, INSERT INTO, SHOW TABLES"};
+  let s=q;
+  let limit=null;
+  const lm=s.match(/LIMIT\s+(\d+)/i);
+  if(lm){limit=parseInt(lm[1]);s=s.slice(0,lm.index).trim();}
+  let ob=null,od="ASC";
+  const om=s.match(/ORDER\s+BY\s+(\w+)(\s+DESC|\s+ASC)?/i);
+  if(om){ob=om[1];if(om[2]&&om[2].trim().toUpperCase()==="DESC")od="DESC";s=s.slice(0,om.index).trim();}
+  let wh=null;
+  const wm=s.match(/WHERE\s+(.+)/i);
+  if(wm){wh=wm[1].trim();s=s.slice(0,wm.index).trim();}
+  const fm=s.match(/FROM\s+(\w+)/i);
+  if(!fm)return{type:"error",msg:"Missing FROM. Example: SELECT * FROM users"};
+  const t=fm[1];
+  if(!DB.tables[t])return{type:"error",msg:`Table '${t}' not found. Available: ${Object.keys(DB.tables).join(", ")}`};
+  s=s.slice(0,fm.index).trim();
+  const cm=s.match(/SELECT\s+(.+)/i);
+  let cols="*";
+  if(cm&&cm[1].trim()!=="*")cols=cm[1].split(",").map(c=>c.trim());
+  let rows=[...DB.tables[t]];
+  if(wh){
+    const p=wh.match(/^(\w+)\s*(==|!=|>=|<=|>|<|=)\s*(.+)$/);
+    if(!p)return{type:"error",msg:`Invalid WHERE: '${wh}'`};
+    const[,f,op,rv]=p;
+    const v=rv.replace(/^["']|["']$/g,'');
+    const cmp=OPS[op];
+    rows=rows.filter(r=>{try{return f in r&&cmp(r[f],v);}catch{return false;}});
+  }
+  if(ob){
+    rows.sort((a,b)=>{
+      const av=a[ob]??"",bv=b[ob]??"";
+      if(!isNaN(av)&&!isNaN(bv))return od==="ASC"?av-bv:bv-av;
+      return od==="ASC"?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));
+    });
+  }
+  if(limit!==null)rows=rows.slice(0,limit);
+  if(cols!=="*")rows=rows.map(r=>{const o={};cols.forEach(c=>{if(c in r)o[c]=r[c];});return o;});
+  return{type:"rows",rows};
+}
+
+function render(res){
+  const out=document.getElementById("qout");
+  const rc=document.getElementById("rcount");
+  if(res.type==="error"){out.innerHTML=`<span class="pg-err">Error: ${res.msg}</span>`;rc.textContent="";return;}
+  if(res.type==="tables"){
+    out.innerHTML=`<span class="pg-ok">Tables:</span>\n`+Object.keys(DB.tables).map(t=>`  ${t}  (${DB.tables[t].length} rows)`).join("\n");rc.textContent="";return;
+  }
+  if(res.type==="insert"){out.innerHTML=`<span class="pg-ok">Inserted _id=${res.rec._id}</span>\n`+JSON.stringify(res.rec,null,2);rc.textContent="";return;}
+  const{rows}=res;
+  rc.textContent=`${rows.length} row${rows.length!==1?"s":""}`;
+  if(!rows.length){out.innerHTML=`<span class="pg-dim">No records matched.</span>`;return;}
+  const ks=Object.keys(rows[0]);
+  const w={};
+  ks.forEach(k=>w[k]=Math.max(k.length,...rows.map(r=>String(r[k]??"").length))+2);
+  const hdr=ks.map(k=>`<span class="pg-col">${k.padEnd(w[k])}</span>`).join("  ");
+  const sep=`<span class="pg-sep">${ks.map(k=>"─".repeat(w[k])).join("  ")}</span>`;
+  const body=rows.map(r=>ks.map(k=>String(r[k]??"").padEnd(w[k])).join("  ")).join("\n");
+  out.innerHTML=hdr+"\n"+sep+"\n"+body;
+}
+
+function runQ(){try{render(parse(document.getElementById("qinput").value.trim()));}catch(e){document.getElementById("qout").innerHTML=`<span class="pg-err">Error: ${e.message}</span>`;}}
+function qs(q){document.getElementById("qinput").value=q;runQ();}
+document.getElementById("qinput").addEventListener("keydown",e=>{if(e.ctrlKey&&e.key==="Enter"){e.preventDefault();runQ();}});
+
+// Active sidebar link on scroll
+const anchors=[...document.querySelectorAll(".section-anchor")];
+window.addEventListener("scroll",()=>{
+  let cur=null;
+  anchors.forEach(a=>{if(a.getBoundingClientRect().top<80)cur=a.id;});
+  document.querySelectorAll(".sidebar-link,.toc-link").forEach(l=>{
+    const match=l.getAttribute("onclick")?.includes(cur);
+    l.classList.toggle("active",!!match);
+  });
+},{ passive:true });
+
+window.onload=()=>runQ();
+</script>
+</body>
+</html>
