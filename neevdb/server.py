@@ -1,5 +1,5 @@
 """
-NeevDB - Optional REST API Server (v3.0.2)
+NeevDB - Optional REST API Server (v3.0.3)
 
 This module is optional. It requires FastAPI and uvicorn to be installed.
 
@@ -56,7 +56,7 @@ def start(db_path: str = "neevdb.json", host: str = "127.0.0.1", port: int = 800
     app = FastAPI(
         title="NeevDB API",
         description="REST API powered by NeevDB — your own database engine.",
-        version="3.0.2",
+        version="3.0.3",
     )
 
     app.add_middleware(
@@ -105,7 +105,7 @@ def start(db_path: str = "neevdb.json", host: str = "127.0.0.1", port: int = 800
 
     @app.get("/", tags=["Info"])
     def root():
-        return {"name": "NeevDB API", "version": "3.0.2", "status": "running", "docs": "/docs"}
+        return {"name": "NeevDB API", "version": "3.0.3", "status": "running", "docs": "/docs"}
 
     @app.get("/stats", tags=["Info"])
     def stats():
