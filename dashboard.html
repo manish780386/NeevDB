@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeevDB Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f9;--surface:#fff;--border:#e4e4ec;--border2:#d0d0de;
+  --text:#111118;--muted:#6b6b80;--hint:#9898b0;
+  --accent:#5b5bd6;--accent-bg:#eeeeff;--accent-text:#3a3a9e;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-text:#15803d;--green-border:#bbf7d0;
+  --red:#dc2626;--red-bg:#fef2f2;--red-border:#fecaca;
+  --yellow:#d97706;--yellow-bg:#fffbeb;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+  --r:8px;--rlg:12px;--sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--bg);display:flex;flex-direction:column}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* topbar */
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 1.25rem;gap:10px;flex-shrink:0;box-shadow:var(--sh);z-index:100}
+.logo{font-family:var(--mono);font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.pill{display:flex;align-items:center;gap:5px;font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:var(--bg)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--hint);transition:background .3s}
+.sdot.on{background:var(--green);box-shadow:0 0 0 2px var(--green-bg)}
+.dbpath{font-family:var(--mono);font-size:11px;color:var(--hint);padding:4px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ml{margin-left:auto}
+
+/* layout */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* sidebar */
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-top{padding:1rem .75rem .5rem;flex-shrink:0}
+.sb-lbl{font-size:10px;font-weight:600;color:var(--hint);letter-spacing:.1em;text-transform:uppercase;padding:0 .5rem;margin-bottom:5px}
+.sb-btn{width:100%;text-align:left;background:none;border:none;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:6px 10px;border-radius:var(--r);cursor:pointer;transition:all .15s;font-family:var(--sans)}
+.sb-btn:hover{background:var(--bg);color:var(--text)}
+.sb-btn.active{background:var(--accent-bg);color:var(--accent-text);font-weight:500}
+.sb-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.sb-divider{border:none;border-top:1px solid var(--border);margin:.5rem .75rem}
+.tb-section{padding:0 .75rem .5rem;flex-shrink:0}
+.tb-list{flex:1;overflow-y:auto;padding:0 .75rem}
+.tb-item{display:flex;align-items:center;gap:7px;font-size:12px;font-family:var(--mono);color:var(--muted);padding:6px 10px;border-radius:var(--r);cursor:pointer;transition:all .15s}
+.tb-item:hover{background:var(--bg);color:var(--text)}
+.tb-item.active{background:var(--accent-bg);color:var(--accent-text)}
+.tb-cnt{margin-left:auto;font-size:10px;background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:10px;color:var(--hint)}
+.sb-bottom{padding:.75rem;margin-top:auto;flex-shrink:0}
+
+/* main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.panel{display:none;flex:1;flex-direction:column;overflow:hidden}
+.panel.active{display:flex}
+.ph{padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;display:flex;align-items:center;gap:10px}
+.ph-title{font-size:15px;font-weight:600}
+.ph-sub{font-size:12px;color:var(--hint);margin-left:auto;font-family:var(--mono)}
+
+/* stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:1.25rem 1.5rem;flex-shrink:0}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:1rem 1.25rem;box-shadow:var(--sh)}
+.sv{font-size:1.6rem;font-weight:600;color:var(--text);font-family:var(--mono);line-height:1}
+.sl{font-size:11px;color:var(--hint);margin-top:5px}
+
+/* toolbar */
+.toolbar{padding:.625rem 1.5rem;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:7px;flex-shrink:0;flex-wrap:wrap}
+input.ti{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);outline:none;transition:border-color .15s}
+input.ti:focus{border-color:var(--accent)}
+input.ti::placeholder{color:var(--hint)}
+.btn{padding:6px 13px;border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent;font-family:var(--sans);display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:all .15s}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-p:hover{opacity:.87}
+.btn-g{background:var(--surface);color:var(--muted);border-color:var(--border)}.btn-g:hover{color:var(--text);border-color:var(--border2)}
+.btn-d{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}.btn-d:hover{background:#fee2e2}
+.btn-y{background:var(--yellow-bg);color:var(--yellow);border-color:#fde68a}
+
+/* table */
+.twrap{flex:1;overflow:auto;padding:1rem 1.5rem}
+table.dt{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);overflow:hidden;box-shadow:var(--sh)}
+table.dt th{text-align:left;padding:8px 13px;color:var(--muted);font-weight:500;font-size:11px;border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap}
+table.dt td{padding:8px 13px;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+table.dt tr:last-child td{border-bottom:none}
+table.dt tr:hover td{background:#fafafd}
+.act-btn{background:none;border:none;color:var(--hint);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:12px;transition:all .15s}
+.act-btn.edit:hover{background:var(--accent-bg);color:var(--accent)}
+.act-btn.del:hover{background:var(--red-bg);color:var(--red)}
+
+/* empty */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:6px;color:var(--hint);padding:3rem;text-align:center}
+.empty-icon{font-size:2.5rem;opacity:.3;margin-bottom:.5rem}
+.empty-title{font-size:14px;font-weight:500;color:var(--muted)}
+.empty-sub{font-size:12px;max-width:260px;line-height:1.6}
+
+/* query panel */
+.ql{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
+.qp{display:flex;flex-direction:column;overflow:hidden}
+.qph{padding:.5rem 1rem;font-size:10px;font-family:var(--mono);color:var(--hint);border-bottom:1px solid var(--border);letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;background:var(--bg);flex-shrink:0}
+.qpr{border-left:1px solid var(--border)}
+textarea#qt{flex:1;background:var(--surface);border:none;outline:none;padding:1rem;font-family:var(--mono);font-size:13px;color:var(--text);resize:none;line-height:1.8;min-height:180px}
+.qchips{display:flex;flex-wrap:wrap;gap:5px;padding:.6rem 1rem;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.qchip{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:5px;background:var(--surface);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.qchip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+#qout{flex:1;padding:1rem;font-family:var(--mono);font-size:12px;overflow:auto;background:var(--surface);white-space:pre;line-height:1.8;color:var(--text)}
+.qrb{padding:.5rem 1rem;border-top:1px solid var(--border);background:var(--bg);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.qrun{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:opacity .15s}
+.qrun:hover{opacity:.85}
+.qerr{color:var(--red)}.qok{color:var(--green)}.qdim{color:var(--hint)}.qcol{color:var(--accent-text);font-weight:500}.qsep{color:var(--border2)}
+
+/* json tree */
+.tree-wrap{flex:1;overflow:auto;padding:1rem 1.5rem}
+.tree-node{margin-left:1.25rem}
+.tree-key{color:var(--accent-text);font-family:var(--mono);font-size:12px}
+.tree-val-str{color:var(--green-text);font-family:var(--mono);font-size:12px}
+.tree-val-num{color:var(--yellow);font-family:var(--mono);font-size:12px}
+.tree-val-bool{color:var(--red);font-family:var(--mono);font-size:12px}
+.tree-toggle{cursor:pointer;user-select:none;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.tree-toggle:hover{color:var(--text)}
+
+/* modal */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.mo.open{display:flex}
+.md{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:1.5rem;width:440px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+.md-title{font-size:15px;font-weight:600;margin-bottom:1rem}
+.mf{margin-bottom:10px}
+.mf label{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.mf input,.mf textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s}
+.mf input:focus,.mf textarea:focus{border-color:var(--accent)}
+.mf textarea{resize:vertical;min-height:90px;line-height:1.6}
+.mf .hint{font-size:11px;color:var(--hint);margin-top:4px;line-height:1.5}
+.ma{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem}
+
+/* toast */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:999;background:var(--text);color:#fff;padding:9px 15px;border-radius:var(--r);font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.18);transform:translateY(16px);opacity:0;transition:all .22s;pointer-events:none;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{background:var(--green)}.toast.err{background:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="logo-dot"></div>NeevDB</div>
+  <div class="dbpath" id="dbpath">neevdb.json</div>
+  <div class="pill ml"><div class="sdot" id="sdot"></div><span id="stxt">Connecting...</span></div>
+</div>
+
+<div class="layout">
+
+<!-- sidebar -->
+<div class="sidebar">
+  <div class="sb-top">
+    <div class="sb-lbl">Views</div>
+    <button class="sb-btn active" id="btn-overview" onclick="showPanel('overview')"><span class="sb-icon">📊</span>Overview</button>
+    <button class="sb-btn" id="btn-query" onclick="showPanel('query')"><span class="sb-icon">⚡</span>Query</button>
+    <button class="sb-btn" id="btn-tree" onclick="showPanel('tree')"><span class="sb-icon">🌳</span>JSON Tree</button>
+  </div>
+  <hr class="sb-divider">
+  <div class="tb-section">
+    <div class="sb-lbl">Tables</div>
+  </div>
+  <div class="tb-list" id="tb-list"><div style="font-size:11px;color:var(--hint);padding:4px 10px">Loading...</div></div>
+  <div class="sb-bottom">
+    <button class="btn btn-g" style="width:100%;justify-content:center" onclick="openNewTable()">+ New table</button>
+  </div>
+</div>
+
+<!-- main -->
+<div class="main">
+
+  <!-- Overview -->
+  <div class="panel active" id="panel-overview">
+    <div class="ph"><div class="ph-title">Overview</div><div class="ph-sub" id="last-upd"></div></div>
+    <div class="stats-grid">
+      <div class="sc"><div class="sv" id="s-tables">—</div><div class="sl">Tables</div></div>
+      <div class="sc"><div class="sv" id="s-records">—</div><div class="sl">Total records</div></div>
+      <div class="sc"><div class="sv">v3.0.1</div><div class="sl">NeevDB version</div></div>
+      <div class="sc"><div class="sv">JSON</div><div class="sl">Storage format</div></div>
+    </div>
+    <div style="padding:0 1.5rem .5rem;font-size:12px;font-weight:600;color:var(--muted)">Tables</div>
+    <div class="twrap" style="padding-top:0">
+      <table class="dt" id="ov-table">
+        <thead><tr><th>Table</th><th>Records</th><th>Actions</th></tr></thead>
+        <tbody id="ov-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Table records -->
+  <div class="panel" id="panel-table">
+    <div class="ph">
+      <div class="ph-title" id="tp-title">Table</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:7px">
+        <span class="ph-sub" id="tp-count"></span>
+        <button class="btn btn-d" onclick="dropTable()">Drop table</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input class="ti" id="fi" placeholder="Filter: age>18 or city=Mumbai" style="width:240px" onkeydown="if(event.key==='Enter')applyFilter()">
+      <button class="btn btn-g" onclick="applyFilter()">Filter</button>
+      <button class="btn btn-g" onclick="clearFilter()">Clear</button>
+      <div style="margin-left:auto;display:flex;gap:7px">
+        <button class="btn btn-p" onclick="openInsert()">+ Insert row</button>
+        <button class="btn btn-g" onclick="loadTable(curTable)">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="twrap">
+      <div class="empty" id="tbl-empty" style="display:none">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">No records</div>
+        <div class="empty-sub">Table is empty. Click "+ Insert row" to add data.</div>
+      </div>
+      <table class="dt" id="rec-table" style="display:none">
+        <thead id="rec-thead"></thead>
+        <tbody id="rec-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Query -->
+  <div class="panel" id="panel-query">
+    <div class="ph"><div class="ph-title">Query Engine</div><div class="ph-sub">POST /api/query</div></div>
+    <div class="ql">
+      <div class="qp">
+        <div class="qph"><span>SQL-like query</span><span style="color:var(--accent-text);font-size:10px">Ctrl+Enter</span></div>
+        <textarea id="qt" spellcheck="false">SELECT * FROM users</textarea>
+        <div class="qchips">
+          <button class="qchip" onclick="ql('SELECT * FROM users')">SELECT *</button>
+          <button class="qchip" onclick="ql('SELECT * FROM users WHERE age > 18')">WHERE age>18</button>
+          <button class="qchip" onclick="ql('SELECT name, city FROM users ORDER BY age DESC')">ORDER BY DESC</button>
+          <button class="qchip" onclick="ql('SELECT * FROM users LIMIT 5')">LIMIT 5</button>
+          <button class="qchip" onclick="ql('SELECT * FROM products WHERE price < 5000 ORDER BY price')">Products&lt;5k</button>
+          <button class="qchip" onclick="ql('SELECT * FROM products ORDER BY price DESC LIMIT 3')">Top 3 products</button>
+        </div>
+        <div class="qrb">
+          <button class="qrun" onclick="runQuery()">▶ Run</button>
+          <span style="font-size:11px;color:var(--hint);font-family:var(--mono)">Ctrl+Enter</span>
+          <span id="q-rc" style="margin-left:auto;font-size:11px;color:var(--green-text);font-family:var(--mono)"></span>
+        </div>
+      </div>
+      <div class="qp qpr">
+        <div class="qph"><span>Result</span></div>
+        <div id="qout"><span class="qdim">// Run a query to see results</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON Tree -->
+  <div class="panel" id="panel-tree">
+    <div class="ph">
+      <div class="ph-title">JSON Tree</div>
+      <div class="ph-sub" id="tree-sub">Full database view</div>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-g" onclick="loadTree()">↻ Refresh</button>
+      <span style="font-size:12px;color:var(--hint)">Full neevdb.json structure</span>
+    </div>
+    <div class="tree-wrap"><div id="tree-root"></div></div>
+  </div>
+
+</div>
+</div>
+
+<!-- Insert modal -->
+<div class="mo" id="mo-insert">
+  <div class="md">
+    <div class="md-title">Insert into <span id="mo-tname" style="color:var(--accent)"></span></div>
+    <div class="mf">
+      <label>Fields (JSON)</label>
+      <textarea id="mo-json" rows="5" placeholder='{"name": "Alice", "age": 25, "city": "Mumbai"}'></textarea>
+      <div class="hint">_id and _created_at are added automatically.</div>
+    </div>
+    <div class="ma">
+      <button class="btn btn-g" onclick="closeModal('mo-insert')">Cancel</button>
+      <button class="btn btn-p" onclick="insertRecord()">Insert</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div class="mo" id="mo-edit">
+  <div class="md">
+    <div class="md-title">Edit record <span id="mo-edit-id" style="color:var(--accent)"></span></div>
+    <div class="mf">
+      <label>Updated fields (JSON)</label>
+      <textarea id="mo-edit-json" rows="5"></textarea>
+      <div class="hint">Only include fields you want to change.</div>
+    </div>
+    <div class="ma">
+      <button class="btn btn-g" onclick="closeModal('mo-edit')">Cancel</button>
+      <button class="btn btn-p" onclick="updateRecord()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- New table modal -->
+<div class="mo" id="mo-newtable">
+  <div class="md">
+    <div class="md-title">Create new table</div>
+    <div class="mf">
+      <label>Table name</label>
+      <input id="mo-tbl-name" placeholder="users" onkeydown="if(event.key==='Enter')createTable()">
+      <div class="hint">Lowercase letters and underscores only. E.g. users, orders, products</div>
+    </div>
+    <div class="ma">
+      <button class="btn btn-g" onclick="closeModal('mo-newtable')">Cancel</button>
+      <button class="btn btn-p" onclick="createTable()">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "";  // same origin — api.py serves this file
+let curTable = null, editId = null;
+
+// ── Toast ──────────────────────────────────────────────────────────
+function toast(msg, type="ok") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove("show"), 2800);
+}
+
+// ── Fetch helpers ──────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: {"Content-Type":"application/json"} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.detail || "API error");
+  return d;
+}
+
+// ── Status check ───────────────────────────────────────────────────
+async function checkStatus() {
+  try {
+    const d = await api("GET", "/api");
+    document.getElementById("sdot").className = "sdot on";
+    document.getElementById("stxt").textContent = "Connected";
+    document.getElementById("dbpath").textContent = d.db;
+  } catch {
+    document.getElementById("sdot").className = "sdot";
+    document.getElementById("stxt").textContent = "Offline";
+  }
+}
+
+// ── Panel ──────────────────────────────────────────────────────────
+function showPanel(name) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".sb-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(`panel-${name}`).classList.add("active");
+  const btn = document.getElementById(`btn-${name}`);
+  if (btn) btn.classList.add("active");
+  if (name === "tree") loadTree();
+}
+
+// ── Stats + Overview ───────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const d = await api("GET", "/api/stats");
+    document.getElementById("s-tables").textContent  = d.total_tables;
+    document.getElementById("s-records").textContent = d.total_records;
+    document.getElementById("last-upd").textContent  = "Updated " + new Date().toLocaleTimeString();
+    const tbody = document.getElementById("ov-tbody");
+    tbody.innerHTML = "";
+    if (!Object.keys(d.tables).length) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--hint);padding:2rem">No tables yet — create one!</td></tr>`;
+    } else {
+      Object.entries(d.tables).forEach(([t, cnt]) => {
+        tbody.innerHTML += `<tr>
+          <td style="font-weight:500;font-family:var(--mono)">${t}</td>
+          <td>${cnt}</td>
+          <td style="font-family:var(--sans)">
+            <button class="btn btn-g" style="padding:3px 10px;font-size:11px" onclick="loadTable('${t}')">Open →</button>
+            <button class="btn btn-d" style="padding:3px 10px;font-size:11px;margin-left:4px" onclick="curTable='${t}';dropTable()">Drop</button>
+          </td>
+        </tr>`;
+      });
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ── Table list ─────────────────────────────────────────────────────
+async function loadTableList() {
+  try {
+    const d     = await api("GET", "/api/tables");
+    const stats = await api("GET", "/api/stats").catch(() => ({tables:{}}));
+    const list  = document.getElementById("tb-list");
+    list.innerHTML = "";
+    if (!d.tables.length) {
+      list.innerHTML = `<div style="font-size:11px;color:var(--hint);padding:4px 10px">No tables yet</div>`;
+      return;
+    }
+    d.tables.forEach(t => {
+      const cnt    = stats.tables?.[t] ?? "?";
+      const active = t === curTable ? " active" : "";
+      list.innerHTML += `<div class="tb-item${active}" id="ti-${t}" onclick="loadTable('${t}')">
+        <span>🗂</span>${t}<span class="tb-cnt">${cnt}</span>
+      </div>`;
+    });
+  } catch { document.getElementById("tb-list").innerHTML = `<div style="font-size:11px;color:var(--red);padding:4px 10px">API offline</div>`; }
+}
+
+// ── Load table ─────────────────────────────────────────────────────
+async function loadTable(name, where="") {
+  curTable = name;
+  document.querySelectorAll(".tb-item").forEach(el => el.classList.remove("active"));
+  document.getElementById(`ti-${name}`)?.classList.add("active");
+  document.getElementById("tp-title").textContent = name;
+  showPanel("table");
+  document.getElementById("btn-table") && (document.getElementById("btn-table").classList.add("active"));
+
+  let url = `/api/tables/${name}/records`;
+  if (where) url += `?where=${encodeURIComponent(where)}`;
+
+  try {
+    const d = await api("GET", url);
+    document.getElementById("tp-count").textContent = `${d.count} record${d.count!==1?"s":""}`;
+    renderRecords(d.records);
+  } catch(e) { toast(e.message, "err"); }
+}
+
+function renderRecords(records) {
+  const tbl   = document.getElementById("rec-table");
+  const empty = document.getElementById("tbl-empty");
+  const thead = document.getElementById("rec-thead");
+  const tbody = document.getElementById("rec-tbody");
+  if (!records.length) { tbl.style.display="none"; empty.style.display="flex"; return; }
+  tbl.style.display=""; empty.style.display="none";
+  const cols = Object.keys(records[0]);
+  thead.innerHTML = "<tr>" + cols.map(c=>`<th>${c}</th>`).join("") + "<th>Actions</th></tr>";
+  tbody.innerHTML = records.map(r => `<tr>
+    ${cols.map(c=>`<td title="${String(r[c]??'')}">${r[c]??''}</td>`).join("")}
+    <td style="font-family:var(--sans)">
+      <button class="act-btn edit" onclick="openEdit(${r._id}, ${JSON.stringify(JSON.stringify(r))})" title="Edit">✎</button>
+      <button class="act-btn del"  onclick="deleteRecord(${r._id})" title="Delete">✕</button>
+    </td>
+  </tr>`).join("");
+}
+
+// ── Filter ─────────────────────────────────────────────────────────
+function applyFilter() { if(curTable) loadTable(curTable, document.getElementById("fi").value.trim()); }
+function clearFilter()  { document.getElementById("fi").value=""; if(curTable) loadTable(curTable); }
+
+// ── Insert ─────────────────────────────────────────────────────────
+function openInsert() {
+  if (!curTable) { toast("Open a table first", "err"); return; }
+  document.getElementById("mo-tname").textContent = curTable;
+  document.getElementById("mo-json").value = "";
+  openModal("mo-insert");
+  setTimeout(() => document.getElementById("mo-json").focus(), 100);
+}
+async function insertRecord() {
+  let data;
+  try { data = JSON.parse(document.getElementById("mo-json").value); }
+  catch { toast("Invalid JSON!", "err"); return; }
+  try {
+    const d = await api("POST", `/api/tables/${curTable}/records`, {data});
+    closeModal("mo-insert");
+    toast(`Inserted _id=${d.record._id} ✓`);
+    refresh();
+  } catch(e) { toast(e.message, "err"); }
+}
+
+// ── Edit ───────────────────────────────────────────────────────────
+function openEdit(id, jsonStr) {
+  const rec = JSON.parse(jsonStr);
+  const editable = Object.fromEntries(Object.entries(rec).filter(([k]) => !k.startsWith("_")));
+  editId = id;
+  document.getElementById("mo-edit-id").textContent = `#${id}`;
+  document.getElementById("mo-edit-json").value = JSON.stringify(editable, null, 2);
+  openModal("mo-edit");
+  setTimeout(() => document.getElementById("mo-edit-json").focus(), 100);
+}
+async function updateRecord() {
+  let data;
+  try { data = JSON.parse(document.getElementById("mo-edit-json").value); }
+  catch { toast("Invalid JSON!", "err"); return; }
+  try {
+    await api("PUT", `/api/tables/${curTable}/records/${editId}`, {data});
+    closeModal("mo-edit");
+    toast(`Updated _id=${editId} ✓`);
+    refresh();
+  } catch(e) { toast(e.message, "err"); }
+}
+
+// ── Delete ─────────────────────────────────────────────────────────
+async function deleteRecord(id) {
+  if (!confirm(`Delete record _id=${id}?`)) return;
+  try {
+    await api("DELETE", `/api/tables/${curTable}/records/${id}`);
+    toast(`Deleted _id=${id}`);
+    refresh();
+  } catch(e) { toast(e.message, "err"); }
+}
+
+// ── Drop table ─────────────────────────────────────────────────────
+async function dropTable() {
+  if (!curTable) return;
+  if (!confirm(`Drop table '${curTable}'? This cannot be undone!`)) return;
+  try {
+    await api("DELETE", `/api/tables/${curTable}`);
+    toast(`Table '${curTable}' dropped`);
+    curTable = null;
+    showPanel("overview");
+    refresh();
+  } catch(e) { toast(e.message, "err"); }
+}
+
+// ── Create table ───────────────────────────────────────────────────
+function openNewTable() { document.getElementById("mo-tbl-name").value=""; openModal("mo-newtable"); setTimeout(()=>document.getElementById("mo-tbl-name").focus(),100); }
+async function createTable() {
+  const name = document.getElementById("mo-tbl-name").value.trim().toLowerCase().replace(/\s+/g,"_");
+  if (!name) { toast("Enter a name", "err"); return; }
+  try {
+    await api("POST", `/api/tables/${name}`);
+    closeModal("mo-newtable");
+    toast(`Table '${name}' created ✓`);
+    refresh();
+    setTimeout(() => loadTable(name), 400);
+  } catch(e) { toast(e.message, "err"); }
+}
+
+// ── Query ──────────────────────────────────────────────────────────
+async function runQuery() {
+  const q = document.getElementById("qt").value.trim();
+  if (!q) return;
+  try {
+    const d   = await api("POST", "/api/query", {query: q});
+    const out = document.getElementById("qout");
+    const rc  = document.getElementById("q-rc");
+    rc.textContent = `${d.count} row${d.count!==1?"s":""}`;
+    if (!d.records.length) { out.innerHTML=`<span class="qdim">No records matched.</span>`; return; }
+    const cols = Object.keys(d.records[0]);
+    const w    = {};
+    cols.forEach(c => w[c] = Math.max(c.length,...d.records.map(r=>String(r[c]??"").length))+2);
+    const hdr  = cols.map(c=>`<span class="qcol">${c.padEnd(w[c])}</span>`).join("  ");
+    const sep  = `<span class="qsep">${cols.map(c=>"─".repeat(w[c])).join("  ")}</span>`;
+    const body = d.records.map(r=>cols.map(c=>String(r[c]??"").padEnd(w[c])).join("  ")).join("\n");
+    out.innerHTML = hdr+"\n"+sep+"\n"+body;
+  } catch(e) {
+    document.getElementById("qout").innerHTML = `<span class="qerr">Error: ${e.message}</span>`;
+    document.getElementById("q-rc").textContent = "";
+  }
+}
+function ql(q) { document.getElementById("qt").value=q; runQuery(); }
+document.addEventListener("keydown", e => { if(e.ctrlKey&&e.key==="Enter") runQuery(); });
+
+// ── JSON Tree ──────────────────────────────────────────────────────
+async function loadTree() {
+  const root = document.getElementById("tree-root");
+  root.innerHTML = `<span style="color:var(--hint);font-family:var(--mono);font-size:12px">Loading...</span>`;
+  try {
+    const d = await api("GET", "/api/stats");
+    const tables = await api("GET", "/api/tables");
+    const full = { tables: {} };
+    for (const t of tables.tables) {
+      const rd = await api("GET", `/api/tables/${t}/records`);
+      full.tables[t] = rd.records;
+    }
+    document.getElementById("tree-sub").textContent = `${d.total_tables} tables, ${d.total_records} records`;
+    root.innerHTML = renderTree(full, 0);
+  } catch(e) { root.innerHTML = `<span style="color:var(--red);font-family:var(--mono);font-size:12px">Error: ${e.message}</span>`; }
+}
+
+function renderTree(obj, depth) {
+  if (obj === null)                  return `<span class="tree-val-bool">null</span>`;
+  if (typeof obj === "boolean")      return `<span class="tree-val-bool">${obj}</span>`;
+  if (typeof obj === "number")       return `<span class="tree-val-num">${obj}</span>`;
+  if (typeof obj === "string")       return `<span class="tree-val-str">"${obj}"</span>`;
+  if (Array.isArray(obj)) {
+    if (!obj.length) return `<span style="color:var(--hint);font-family:var(--mono);font-size:12px">[]</span>`;
+    const id = "t"+Math.random().toString(36).slice(2);
+    const items = obj.map((v,i)=>`<div class="tree-node">${renderTree(v,depth+1)}</div>`).join("");
+    return `<div><span class="tree-toggle" onclick="document.getElementById('${id}').style.display=document.getElementById('${id}').style.display==='none'?'block':'none'">▾ [${obj.length}]</span><div id="${id}">${items}</div></div>`;
+  }
+  if (typeof obj === "object") {
+    const entries = Object.entries(obj);
+    if (!entries.length) return `<span style="color:var(--hint);font-family:var(--mono);font-size:12px">{}</span>`;
+    const id = "t"+Math.random().toString(36).slice(2);
+    const items = entries.map(([k,v])=>`<div class="tree-node"><span class="tree-key">"${k}"</span><span style="color:var(--hint);font-family:var(--mono);font-size:12px">: </span>${renderTree(v,depth+1)}</div>`).join("");
+    return `<div><span class="tree-toggle" onclick="document.getElementById('${id}').style.display=document.getElementById('${id}').style.display==='none'?'block':'none'">▾ {${entries.length}}</span><div id="${id}">${items}</div></div>`;
+  }
+  return String(obj);
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+document.querySelectorAll(".mo").forEach(el => el.addEventListener("click", e => { if(e.target===el) el.classList.remove("open"); }));
+
+// ── Refresh all ────────────────────────────────────────────────────
+async function refresh() {
+  await loadStats();
+  await loadTableList();
+  if (curTable) loadTable(curTable);
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+async function init() {
+  await checkStatus();
+  await refresh();
+  setInterval(checkStatus, 10000);
+}
+init();
+</script>
+</body>
+</html>

@@ -1,13 +1,25 @@
 # NeevDB 🗄️
 
-> A lightweight, file-based database engine built with pure Python — no dependencies, no setup, just run.
+> A lightweight, file-based database engine built with pure Python — zero dependencies, zero setup.
 
-**NeevDB** ("neev" = foundation in Hindi) is a simple database engine written from scratch in Python.  
-It supports tables, CRUD operations, SQL-like queries, and an interactive CLI shell.
+**NeevDB** ("neev" = foundation in Hindi) is a database engine written from scratch in Python.
+It supports tables, CRUD operations, SQL-like queries, an interactive CLI shell, and a full REST API server.
 
 ---
 
-## 📁 Folder Structure
+## 📦 Install
+
+```bash
+# Core — zero dependencies
+pip install neevdb
+
+# With REST API server support
+pip install neevdb[server]
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 NeevDB/
@@ -15,11 +27,17 @@ NeevDB/
 │   ├── __init__.py       # Package entry point
 │   ├── core.py           # Main database engine (CRUD + Query)
 │   ├── storage.py        # File read/write layer
-│   └── query.py          # SQL-like query parser and executor
+│   ├── query.py          # SQL-like query parser and executor
+│   └── server.py         # Optional REST API server (FastAPI)
 ├── tests/
-│   └── test_core.py      # Full test suite (12 tests)
+│   ├── test_core.py      # Core test suite (12 tests)
+│   └── test_v2.py        # Full test suite (50+ tests)
+├── api.py                # FastAPI REST API server
 ├── cli.py                # Interactive terminal shell
-└── README.md             # You are here
+├── dashboard.html        # Browser dashboard UI
+├── start.py              # One-command server launcher
+├── pyproject.toml        # Package config
+└── README.md
 ```
 
 ---
@@ -29,29 +47,25 @@ NeevDB/
 ```python
 from neevdb import NeevDB
 
-# Connect to (or create) a database file
 db = NeevDB("mydata.json")
 
-# Create a table
 db.create_table("users")
-
-# Insert records
 db.insert("users", {"name": "Alice", "age": 25, "city": "Mumbai"})
 db.insert("users", {"name": "Bob",   "age": 17, "city": "Delhi"})
 
-# Find all records
+# Find all
 all_users = db.find_all("users")
 
-# Find with a condition
+# Find with condition
 adults = db.find("users", lambda row: row["age"] > 18)
 
-# Update records
+# Update
 db.update("users", lambda row: row["name"] == "Bob", {"age": 20})
 
-# Delete records
+# Delete
 db.delete("users", lambda row: row["name"] == "Alice")
 
-# Count records
+# Count
 total = db.count("users")
 ```
 
@@ -59,96 +73,119 @@ total = db.count("users")
 
 ## 🔍 Query Engine
 
-NeevDB supports SQL-like query strings:
-
 ```python
-# Select all records
 db.query("SELECT * FROM users")
-
-# Filter with WHERE
 db.query("SELECT * FROM users WHERE age > 18")
-
-# Select specific columns
 db.query("SELECT name, city FROM users")
-
-# Sort with ORDER BY
 db.query("SELECT * FROM users ORDER BY age")
 db.query("SELECT * FROM users ORDER BY age DESC")
-
-# Limit results
 db.query("SELECT * FROM users LIMIT 5")
-
-# Combine everything
 db.query("SELECT name, city FROM users WHERE age > 18 ORDER BY name LIMIT 3")
 ```
 
-### Supported WHERE operators:
+### Supported WHERE operators
 
-| Operator | Meaning           |
-|----------|-------------------|
-| `=`      | Equal to          |
-| `!=`     | Not equal to      |
-| `>`      | Greater than      |
-| `<`      | Less than         |
-| `>=`     | Greater or equal  |
-| `<=`     | Less or equal     |
+| Operator | Meaning          | Example               |
+|----------|------------------|-----------------------|
+| `=`      | Equal to         | WHERE city = Mumbai   |
+| `!=`     | Not equal to     | WHERE status != draft |
+| `>`      | Greater than     | WHERE age > 18        |
+| `<`      | Less than        | WHERE price < 500     |
+| `>=`     | Greater or equal | WHERE score >= 90     |
+| `<=`     | Less or equal    | WHERE stock <= 10     |
+
+---
+
+## 🌐 REST API Server
+
+Start the server with one command:
+
+```bash
+python start.py
+```
+
+Or with a custom database file:
+
+```bash
+python start.py mydata.json
+```
+
+Browser opens automatically at `http://localhost:8000` with the dashboard.
+
+### From Python:
+
+```python
+from neevdb.server import start
+start(db_path="mydata.json", host="0.0.0.0", port=8000)
+```
+
+### API Endpoints
+
+| Method   | Endpoint                           | Description              |
+|----------|------------------------------------|--------------------------|
+| GET      | `/api`                             | Health check             |
+| GET      | `/api/stats`                       | Database statistics      |
+| GET      | `/api/tables`                      | List all tables          |
+| POST     | `/api/tables/{name}`               | Create a table           |
+| DELETE   | `/api/tables/{name}`               | Drop a table             |
+| GET      | `/api/tables/{name}/records`       | Get records (+ filters)  |
+| GET      | `/api/tables/{name}/records/{id}`  | Get record by ID         |
+| POST     | `/api/tables/{name}/records`       | Insert a record          |
+| PUT      | `/api/tables/{name}/records/{id}`  | Update a record          |
+| DELETE   | `/api/tables/{name}/records/{id}`  | Delete a record          |
+| POST     | `/api/query`                       | Run SQL-like query       |
+
+### Query parameters for GET /records
+
+```
+?where=age>18          → Filter records
+?order=name            → Sort by field
+?desc=true             → Sort descending
+?limit=5               → Max records
+```
+
+### Use from any frontend
+
+```javascript
+// Fetch users older than 18, sorted by name
+const res  = await fetch('http://localhost:8000/api/tables/users/records?where=age>18&order=name')
+const data = await res.json()
+console.log(data.records)
+
+// Insert a record
+await fetch('http://localhost:8000/api/tables/users/records', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ data: { name: 'Alice', age: 25 } })
+})
+
+// Run a query
+const res = await fetch('http://localhost:8000/api/query', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ query: 'SELECT * FROM users WHERE age > 18 ORDER BY name LIMIT 5' })
+})
+```
 
 ---
 
 ## 💻 CLI Shell
 
-Launch the interactive terminal shell:
-
 ```bash
 python cli.py
-```
-
-Or connect to a specific database file:
-
-```bash
 python cli.py mydata.json
 ```
-
-### CLI Commands:
 
 ```
 NeevDB > SHOW TABLES
 NeevDB > CREATE TABLE users
 NeevDB > INSERT INTO users name=Alice age=25 city=Mumbai
-NeevDB > SELECT * FROM users
 NeevDB > SELECT * FROM users WHERE age > 18
-NeevDB > SELECT * FROM users ORDER BY age DESC LIMIT 3
+NeevDB > SELECT * FROM users ORDER BY age DESC LIMIT 5
 NeevDB > DELETE FROM users WHERE name = Alice
 NeevDB > DROP TABLE users
 NeevDB > HELP
 NeevDB > EXIT
-```
-
-### Example CLI session:
-
-```
-══════════════════════════════════════════════════════
-  NeevDB v1.0 — Interactive Shell
-  Database: neevdb.json
-══════════════════════════════════════════════════════
-  Type HELP for commands, EXIT to quit.
-
-NeevDB > CREATE TABLE users
-  Table 'users' created.
-
-NeevDB > INSERT INTO users name=Manish age=21 city=Indore
-  Inserted record with _id=1 into 'users'.
-
-NeevDB > SELECT * FROM users
-  ────────────────────────────────
-  name      age   city
-  ────────────────────────────────
-  Manish    21    Indore
-  ────────────────────────────────
-  1 row(s)
-
-NeevDB > EXIT
-  Goodbye! NeevDB closed.
 ```
 
 ---
@@ -156,16 +193,11 @@ NeevDB > EXIT
 ## 🧪 Running Tests
 
 ```bash
+# Core tests (12 tests)
 python tests/test_core.py
-```
 
-Expected output:
-```
-══════════════════════════════════════════
-  NeevDB - Full Test Suite
-══════════════════════════════════════════
-  All 12 tests PASSED! NeevDB Phase 2 complete! 🚀
-══════════════════════════════════════════
+# Full test suite (50+ tests)
+python tests/test_v2.py
 ```
 
 ---
@@ -173,51 +205,77 @@ Expected output:
 ## 🛠️ How It Works
 
 ```
-Your Code / CLI
-      │
-      ▼
-  NeevDB Core         ← CRUD operations, table management
-      │
-      ├──► Query Engine   ← Parses SQL-like strings, filters, sorts, limits
-      │
-      └──► Storage        ← Reads and writes JSON file to disk
+Your Code / CLI / Browser
+         │
+         ▼
+    NeevDB Core       ← CRUD operations, table management
+         │
+         ├──► Query Engine   ← Parses SQL-like strings
+         │
+         ├──► Storage        ← Reads/writes JSON file to disk
+         │
+         └──► REST API       ← FastAPI server (optional)
+                  │
+                  └──► Dashboard HTML  ← Browser UI
 ```
-
-- **Storage layer** — All data is saved in a human-readable `.json` file
-- **Core engine** — Manages tables and records in memory, syncs to disk on every change
-- **Query engine** — Parses query strings using `re` (regex), executes filters/sort/limit
-- **CLI shell** — A `while True` input loop that parses commands and calls the engine
 
 ---
 
-## 📦 No Dependencies
+## 📦 Zero Dependencies (Core)
 
-NeevDB uses only Python built-in modules:
+| Module     | Used for                    |
+|------------|-----------------------------|
+| `json`     | Saving and loading data     |
+| `os`       | File path checks            |
+| `re`       | Query string parsing        |
+| `datetime` | Auto-generating timestamps  |
+| `sys`      | CLI argument handling       |
 
-| Module     | Used for                        |
-|------------|---------------------------------|
-| `json`     | Saving and loading data         |
-| `os`       | File path and existence checks  |
-| `re`       | Query string parsing            |
-| `datetime` | Auto-generating timestamps      |
-| `sys`      | CLI argument handling           |
-
-No `pip install` required. Works on Python 3.7+.
+Optional server dependencies: `fastapi`, `uvicorn`
 
 ---
 
 ## 🚀 Built By
 
-**Manish** — built NeevDB from scratch as a learning project.  
+**Manish Dange** — built NeevDB from scratch as a learning project.
 "Neev" means foundation in Hindi — this is the foundation of something bigger.
+
+---
+
+## 📌 Changelog
+
+### v3.0.1
+- Fixed dashboard loading from any folder
+- API endpoints unified under `/api/` prefix
+- `start.py` always runs from correct directory
+
+
+### v3.0.0
+- Fixed dashboard loading from any folder
+- Improved error messages
+
+### v2.0.0
+- Optional REST API server (`pip install neevdb[server]`)
+- `from neevdb.server import start` — one line server start
+- Dashboard HTML UI
+- Full test suite (50+ tests)
+
+### v1.0.0
+- JSON file storage
+- Tables, CRUD operations
+- SQL-like query engine (SELECT/WHERE/ORDER BY/LIMIT)
+- Interactive CLI shell
+- 12 passing tests
 
 ---
 
 ## 📌 Roadmap
 
 - [x] Phase 1 — JSON storage, Tables, CRUD
-- [x] Phase 2 — Query Engine (SELECT / WHERE / ORDER BY / LIMIT)
+- [x] Phase 2 — Query Engine (SELECT/WHERE/ORDER BY/LIMIT)
 - [x] Phase 3 — Interactive CLI Shell
-- [ ] Phase 4 — `pip install neevdb` (publish to PyPI)
-- [ ] Phase 5 — Indexes for faster queries
-- [ ] Phase 6 — Multi-table JOIN support
+- [x] Phase 4 — PyPI publish (`pip install neevdb`)
+- [x] Phase 5 — REST API server + Browser Dashboard
+- [ ] Phase 6 — Indexes for faster queries
+- [ ] Phase 7 — Multi-table JOIN support
+- [ ] Phase 8 — Deploy to cloud (Railway/Render)

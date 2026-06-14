@@ -1,29 +1,27 @@
 """
-NeevDB - REST API Server
-A fully functional REST API built on top of NeevDB using FastAPI.
-
-Run with:
-    uvicorn api:app --reload
-
-Base URL: http://localhost:8000
-Docs UI:  http://localhost:8000/docs
+NeevDB - REST API Server v3.0.1
+Run via: python start.py
 """
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Any
+import re, os
 from neevdb import NeevDB
 
-# ── App setup ──────────────────────────────────────────────────────
+# ── Database ──────────────────────────────────────────────────────
+DB_PATH = os.environ.get("NEEVDB_PATH", "neevdb.json")
+db      = NeevDB(DB_PATH)
+
+# ── App ───────────────────────────────────────────────────────────
 app = FastAPI(
     title="NeevDB API",
     description="A lightweight REST API built on top of NeevDB — your own database engine.",
-    version="1.0.0",
+    version="3.0.1",
 )
 
-# Allow all origins (so browser playground can call the API)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,297 +29,203 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Database connection ─────────────────────────────────────────────
-db = NeevDB("neevdb.json")
+# ── Dashboard ─────────────────────────────────────────────────────
+def find_dashboard() -> str | None:
+    """Find dashboard.html in multiple possible locations."""
+    search_paths = [
+        os.path.join(os.getcwd(), "dashboard.html"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard.html"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "dashboard.html"),
+    ]
+    for path in search_paths:
+        if os.path.exists(path):
+            return path
+    return None
 
+@app.get("/", include_in_schema=False)
+def serve_dashboard():
+    path = find_dashboard()
+    if path:
+        return FileResponse(path)
+    return JSONResponse({
+        "name":    "NeevDB API",
+        "version": "3.0.1",
+        "status":  "running",
+        "docs":    "/docs",
+        "note":    "Place dashboard.html next to api.py to enable the dashboard UI.",
+    })
 
-# ── Request models ──────────────────────────────────────────────────
+# ── Models ────────────────────────────────────────────────────────
 class RecordBody(BaseModel):
-    """Body for inserting or updating a record."""
     data: dict[str, Any]
 
+class QueryBody(BaseModel):
+    query: str
 
-# ── Root ────────────────────────────────────────────────────────────
-@app.get("/", tags=["Info"])
+# ── Helpers ───────────────────────────────────────────────────────
+OPERATORS = {
+    "=":  lambda a, b: str(a) == str(b),
+    "==": lambda a, b: str(a) == str(b),
+    "!=": lambda a, b: str(a) != str(b),
+    ">":  lambda a, b: float(a) > float(b),
+    "<":  lambda a, b: float(a) < float(b),
+    ">=": lambda a, b: float(a) >= float(b),
+    "<=": lambda a, b: float(a) <= float(b),
+}
+
+def apply_where(records: list, where: str) -> list:
+    match = re.match(r"(\w+)\s*(==|!=|>=|<=|>|<|=)\s*(.+)", where)
+    if not match:
+        raise HTTPException(400, f"Invalid where: '{where}'. Example: age>18 or city=Mumbai")
+    field, op, val = match.group(1), match.group(2), match.group(3).strip()
+    cmp = OPERATORS.get(op)
+    result = []
+    for record in records:
+        if field not in record:
+            continue
+        try:
+            if cmp(record[field], val):
+                result.append(record)
+        except (ValueError, TypeError):
+            continue
+    return result
+
+# ── Info ──────────────────────────────────────────────────────────
+@app.get("/api", tags=["Info"])
 def root():
-    """Welcome endpoint — confirms the API is running."""
+    """API health check."""
     return {
         "name":    "NeevDB API",
-        "version": "1.0.0",
+        "version": "3.0.1",
         "status":  "running",
+        "db":      DB_PATH,
         "docs":    "/docs",
     }
 
-
-# ── Tables ──────────────────────────────────────────────────────────
-@app.get("/tables", tags=["Tables"])
-def list_tables():
-    """
-    List all tables in the database.
-
-    Returns:
-        A list of table names.
-
-    Example:
-        GET /tables
-        → { "tables": ["users", "products"] }
-    """
+@app.get("/api/stats", tags=["Info"])
+def stats():
+    """Get database statistics — total tables, total records, per-table counts."""
     data   = db.storage.read()
-    tables = list(data["tables"].keys())
-    return {"tables": tables, "count": len(tables)}
-
-
-@app.post("/tables/{table_name}", tags=["Tables"])
-def create_table(table_name: str):
-    """
-    Create a new table.
-
-    Args:
-        table_name: Name of the table to create.
-
-    Example:
-        POST /tables/users
-        → { "message": "Table 'users' created." }
-    """
-    data = db.storage.read()
-    if table_name in data["tables"]:
-        raise HTTPException(status_code=409, detail=f"Table '{table_name}' already exists.")
-    data["tables"][table_name] = []
-    db.storage.save(data)
-    return {"message": f"Table '{table_name}' created.", "table": table_name}
-
-
-@app.delete("/tables/{table_name}", tags=["Tables"])
-def drop_table(table_name: str):
-    """
-    Delete a table and all its records permanently.
-
-    Args:
-        table_name: Name of the table to delete.
-
-    Example:
-        DELETE /tables/users
-        → { "message": "Table 'users' dropped." }
-    """
-    data = db.storage.read()
-    if table_name not in data["tables"]:
-        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found.")
-    del data["tables"][table_name]
-    db.storage.save(data)
-    return {"message": f"Table '{table_name}' dropped.", "table": table_name}
-
-
-# ── Records ─────────────────────────────────────────────────────────
-@app.get("/tables/{table_name}/records", tags=["Records"])
-def get_records(
-    table_name: str,
-    where:  Optional[str] = Query(None, description="Filter: field=value or field>value"),
-    order:  Optional[str] = Query(None, description="Field to sort by"),
-    desc:   Optional[bool]= Query(False, description="Sort descending"),
-    limit:  Optional[int] = Query(None, description="Max number of records to return"),
-):
-    """
-    Get all records from a table, with optional filtering and sorting.
-
-    Args:
-        table_name : Table to read from.
-        where      : Filter condition  e.g. age>18  or  city=Mumbai
-        order      : Field to sort by  e.g. name
-        desc       : If true, sort descending
-        limit      : Max records to return
-
-    Examples:
-        GET /tables/users/records
-        GET /tables/users/records?where=age>18
-        GET /tables/users/records?where=city=Mumbai&order=name&limit=5
-        GET /tables/users/records?order=age&desc=true&limit=3
-    """
-    data = db.storage.read()
-    if table_name not in data["tables"]:
-        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found.")
-
-    records = list(data["tables"][table_name])
-
-    # ── Apply WHERE filter ──
-    if where:
-        import re
-        match = re.match(r"(\w+)\s*(==|!=|>=|<=|>|<|=)\s*(.+)", where)
-        if not match:
-            raise HTTPException(status_code=400, detail=f"Invalid where format: '{where}'. Use: field>value or field=value")
-
-        field, operator, value = match.group(1), match.group(2), match.group(3).strip()
-
-        operators = {
-            "=":  lambda a, b: str(a) == str(b),
-            "==": lambda a, b: str(a) == str(b),
-            "!=": lambda a, b: str(a) != str(b),
-            ">":  lambda a, b: float(a) > float(b),
-            "<":  lambda a, b: float(a) < float(b),
-            ">=": lambda a, b: float(a) >= float(b),
-            "<=": lambda a, b: float(a) <= float(b),
-        }
-
-        cmp = operators.get(operator)
-        filtered = []
-        for record in records:
-            if field not in record:
-                continue
-            try:
-                if cmp(record[field], value):
-                    filtered.append(record)
-            except (ValueError, TypeError):
-                continue
-        records = filtered
-
-    # ── Apply ORDER BY ──
-    if order:
-        reverse = desc or False
-        try:
-            records = sorted(records, key=lambda r: r.get(order, ""), reverse=reverse)
-        except TypeError:
-            pass
-
-    # ── Apply LIMIT ──
-    if limit is not None:
-        records = records[:limit]
-
+    counts = {t: len(r) for t, r in data["tables"].items()}
     return {
-        "table":   table_name,
-        "count":   len(records),
-        "records": records,
+        "total_tables":  len(counts),
+        "total_records": sum(counts.values()),
+        "tables":        counts,
+        "db_path":       DB_PATH,
     }
 
+# ── Tables ────────────────────────────────────────────────────────
+@app.get("/api/tables", tags=["Tables"])
+def list_tables():
+    """List all tables in the database."""
+    data = db.storage.read()
+    return {"tables": list(data["tables"].keys())}
 
-@app.get("/tables/{table_name}/records/{record_id}", tags=["Records"])
-def get_record_by_id(table_name: str, record_id: int):
+@app.post("/api/tables/{name}", tags=["Tables"])
+def create_table(name: str):
+    """Create a new table. Returns 409 if already exists."""
+    data = db.storage.read()
+    if name in data["tables"]:
+        raise HTTPException(409, f"Table '{name}' already exists.")
+    data["tables"][name] = []
+    db.storage.save(data)
+    return {"message": f"Table '{name}' created.", "table": name}
+
+@app.delete("/api/tables/{name}", tags=["Tables"])
+def drop_table(name: str):
+    """Delete a table and all its records permanently."""
+    data = db.storage.read()
+    if name not in data["tables"]:
+        raise HTTPException(404, f"Table '{name}' not found.")
+    del data["tables"][name]
+    db.storage.save(data)
+    return {"message": f"Table '{name}' dropped.", "table": name}
+
+# ── Records ───────────────────────────────────────────────────────
+@app.get("/api/tables/{name}/records", tags=["Records"])
+def get_records(
+    name:  str,
+    where: Optional[str]  = Query(None, description="Filter: field=value or field>value"),
+    order: Optional[str]  = Query(None, description="Field to sort by"),
+    desc:  Optional[bool] = Query(False, description="Sort descending"),
+    limit: Optional[int]  = Query(None, description="Max records to return"),
+):
     """
-    Get a single record by its _id.
+    Get records from a table with optional filtering, sorting, and limiting.
 
-    Args:
-        table_name : Table to search in.
-        record_id  : The _id of the record.
-
-    Example:
-        GET /tables/users/records/1
-        → { "record": { "_id": 1, "name": "Alice", ... } }
+    Examples:
+        GET /api/tables/users/records
+        GET /api/tables/users/records?where=age>18
+        GET /api/tables/users/records?where=city=Mumbai&order=name&limit=5
+        GET /api/tables/users/records?order=age&desc=true
     """
     data = db.storage.read()
-    if table_name not in data["tables"]:
-        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found.")
+    if name not in data["tables"]:
+        raise HTTPException(404, f"Table '{name}' not found.")
+    records = list(data["tables"][name])
+    if where:
+        records = apply_where(records, where)
+    if order:
+        try:
+            records = sorted(records, key=lambda r: r.get(order, ""), reverse=bool(desc))
+        except TypeError:
+            pass
+    if limit is not None:
+        records = records[:limit]
+    return {"table": name, "count": len(records), "records": records}
 
-    for record in data["tables"][table_name]:
-        if record.get("_id") == record_id:
-            return {"table": table_name, "record": record}
-
-    raise HTTPException(status_code=404, detail=f"Record with _id={record_id} not found in '{table_name}'.")
-
-
-@app.post("/tables/{table_name}/records", tags=["Records"])
-def insert_record(table_name: str, body: RecordBody):
-    """
-    Insert a new record into a table.
-
-    Args:
-        table_name : Table to insert into.
-        body       : JSON body with a 'data' key containing the record fields.
-
-    Example:
-        POST /tables/users/records
-        Body: { "data": { "name": "Alice", "age": 25, "city": "Mumbai" } }
-        → { "record": { "name": "Alice", "age": 25, "_id": 1, ... } }
-    """
+@app.get("/api/tables/{name}/records/{rid}", tags=["Records"])
+def get_record(name: str, rid: int):
+    """Get a single record by its _id."""
     data = db.storage.read()
-    if table_name not in data["tables"]:
-        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found.")
+    if name not in data["tables"]:
+        raise HTTPException(404, f"Table '{name}' not found.")
+    for record in data["tables"][name]:
+        if record.get("_id") == rid:
+            return {"table": name, "record": record}
+    raise HTTPException(404, f"Record _id={rid} not found in '{name}'.")
 
-    try:
-        inserted = db.insert(table_name, body.data)
-        return {"message": "Record inserted.", "table": table_name, "record": inserted}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.put("/tables/{table_name}/records/{record_id}", tags=["Records"])
-def update_record(table_name: str, record_id: int, body: RecordBody):
-    """
-    Update a record by its _id.
-
-    Args:
-        table_name : Table to update.
-        record_id  : The _id of the record to update.
-        body       : JSON body with a 'data' key containing updated fields.
-
-    Example:
-        PUT /tables/users/records/1
-        Body: { "data": { "city": "Delhi" } }
-        → { "message": "Record updated.", "updated": 1 }
-    """
+@app.post("/api/tables/{name}/records", tags=["Records"])
+def insert_record(name: str, body: RecordBody):
+    """Insert a new record. Auto-generates _id and _created_at."""
     data = db.storage.read()
-    if table_name not in data["tables"]:
-        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found.")
+    if name not in data["tables"]:
+        raise HTTPException(404, f"Table '{name}' not found.")
+    inserted = db.insert(name, body.data)
+    return {"message": "Record inserted.", "table": name, "record": inserted}
 
-    updated_count = db.update(
-        table_name,
-        lambda r: r.get("_id") == record_id,
-        body.data
-    )
-
-    if updated_count == 0:
-        raise HTTPException(status_code=404, detail=f"Record with _id={record_id} not found.")
-
-    return {"message": "Record updated.", "table": table_name, "updated": updated_count}
-
-
-@app.delete("/tables/{table_name}/records/{record_id}", tags=["Records"])
-def delete_record(table_name: str, record_id: int):
-    """
-    Delete a record by its _id.
-
-    Args:
-        table_name : Table to delete from.
-        record_id  : The _id of the record to delete.
-
-    Example:
-        DELETE /tables/users/records/1
-        → { "message": "Record deleted.", "deleted": 1 }
-    """
+@app.put("/api/tables/{name}/records/{rid}", tags=["Records"])
+def update_record(name: str, rid: int, body: RecordBody):
+    """Update fields of a record by _id. Only include fields to change."""
     data = db.storage.read()
-    if table_name not in data["tables"]:
-        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found.")
+    if name not in data["tables"]:
+        raise HTTPException(404, f"Table '{name}' not found.")
+    count = db.update(name, lambda r: r.get("_id") == rid, body.data)
+    if count == 0:
+        raise HTTPException(404, f"Record _id={rid} not found.")
+    return {"message": "Record updated.", "table": name, "updated": count}
 
-    deleted_count = db.delete(
-        table_name,
-        lambda r: r.get("_id") == record_id
-    )
+@app.delete("/api/tables/{name}/records/{rid}", tags=["Records"])
+def delete_record(name: str, rid: int):
+    """Delete a record by its _id."""
+    data = db.storage.read()
+    if name not in data["tables"]:
+        raise HTTPException(404, f"Table '{name}' not found.")
+    count = db.delete(name, lambda r: r.get("_id") == rid)
+    if count == 0:
+        raise HTTPException(404, f"Record _id={rid} not found.")
+    return {"message": "Record deleted.", "table": name, "deleted": count}
 
-    if deleted_count == 0:
-        raise HTTPException(status_code=404, detail=f"Record with _id={record_id} not found.")
-
-    return {"message": "Record deleted.", "table": table_name, "deleted": deleted_count}
-
-
-# ── Query endpoint ───────────────────────────────────────────────────
-class QueryBody(BaseModel):
-    """Body for running a raw SQL-like query."""
-    query: str
-
-
-@app.post("/query", tags=["Query"])
+# ── Query ─────────────────────────────────────────────────────────
+@app.post("/api/query", tags=["Query"])
 def run_query(body: QueryBody):
     """
-    Run a SQL-like query string against the database.
+    Run a SQL-like query string.
 
-    Supported syntax:
+    Supported:
         SELECT * FROM users
         SELECT * FROM users WHERE age > 18
         SELECT name, city FROM users ORDER BY age DESC LIMIT 5
-
-    Args:
-        body: JSON body with a 'query' key.
-
-    Example:
-        POST /query
-        Body: { "query": "SELECT * FROM users WHERE age > 18 ORDER BY name LIMIT 5" }
     """
     try:
         results = db.query(body.query)
@@ -331,27 +235,4 @@ def run_query(body: QueryBody):
             "records": results,
         }
     except (SyntaxError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-# ── Stats endpoint ───────────────────────────────────────────────────
-@app.get("/stats", tags=["Info"])
-def get_stats():
-    """
-    Get overall database statistics.
-
-    Returns total tables, total records across all tables, and per-table counts.
-
-    Example:
-        GET /stats
-        → { "total_tables": 2, "total_records": 15, "tables": { "users": 7, ... } }
-    """
-    data          = db.storage.read()
-    table_counts  = {t: len(r) for t, r in data["tables"].items()}
-    total_records = sum(table_counts.values())
-
-    return {
-        "total_tables":  len(table_counts),
-        "total_records": total_records,
-        "tables":        table_counts,
-    }
+        raise HTTPException(400, str(e))

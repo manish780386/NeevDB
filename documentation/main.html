@@ -3,447 +3,386 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeevDB — Lightweight Python Database</title>
+<title>NeevDB — Docs, API & Playground</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#ffffff;--bg2:#f9f9fb;--bg3:#f3f3f7;
+  --bg:#fff;--bg2:#f9f9fb;--bg3:#f3f3f7;
   --border:#e4e4ec;--border2:#d0d0de;
   --text:#111118;--muted:#6b6b80;--hint:#9898b0;
   --accent:#5b5bd6;--accent-bg:#eeeeff;--accent-text:#3a3a9e;
-  --green:#16a34a;--green-bg:#f0fdf4;--green-text:#15803d;
-  --red:#dc2626;--red-bg:#fef2f2;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-text:#15803d;--green-border:#bbf7d0;
+  --red:#dc2626;--red-bg:#fef2f2;--red-border:#fecaca;
   --yellow:#d97706;--yellow-bg:#fffbeb;
-  --mono:'JetBrains Mono',monospace;
-  --sans:'Inter',sans-serif;
-  --radius:8px;--radius-lg:12px;
+  --blue:#2563eb;--blue-bg:#eff6ff;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+  --r:8px;--rlg:12px;
 }
-
 html{scroll-behavior:smooth}
 body{font-family:var(--sans);font-size:15px;color:var(--text);background:var(--bg);line-height:1.6}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-
-/* ── Top nav ── */
-.topnav{
-  position:fixed;top:0;left:0;right:0;z-index:200;
-  height:56px;border-bottom:1px solid var(--border);
-  background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);
-  display:flex;align-items:center;padding:0 1.5rem;gap:1.5rem;
-}
-.logo{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:8px}
-.logo-badge{background:var(--accent);color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;font-family:var(--mono)}
-.topnav-links{display:flex;gap:0.25rem;margin-left:auto;align-items:center}
-.topnav-links a{color:var(--muted);text-decoration:none;font-size:13px;padding:5px 10px;border-radius:6px;transition:all .15s}
-.topnav-links a:hover{color:var(--text);background:var(--bg3)}
-.topnav-links .btn-nav{background:var(--text);color:#fff;font-size:12px;padding:6px 14px;border-radius:6px;transition:opacity .15s}
-.topnav-links .btn-nav:hover{opacity:0.85;background:var(--text)}
+/* ── Nav ── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;height:54px;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 1.5rem;gap:1rem}
+.logo{font-family:var(--mono);font-size:15px;font-weight:500;display:flex;align-items:center;gap:7px;text-decoration:none;color:var(--text)}
+.logo-v{background:var(--accent);color:#fff;font-size:10px;padding:2px 7px;border-radius:4px}
+.nav-tabs{display:flex;gap:2px;margin-left:1.5rem}
+.nav-tab{padding:5px 12px;border-radius:6px;font-size:13px;color:var(--muted);cursor:pointer;border:none;background:none;font-family:var(--sans);transition:all .15s}
+.nav-tab:hover{color:var(--text);background:var(--bg3)}
+.nav-tab.active{color:var(--accent);background:var(--accent-bg);font-weight:500}
+.nav-right{display:flex;gap:6px;margin-left:auto;align-items:center}
+.nav-right a{font-size:13px;color:var(--muted);text-decoration:none;padding:5px 10px;border-radius:6px;transition:all .15s}
+.nav-right a:hover{color:var(--text);background:var(--bg3)}
+.nav-right .pip{background:var(--text);color:#fff;padding:6px 13px;border-radius:6px;font-size:12px;font-weight:500}
+.nav-right .pip:hover{opacity:.85;background:var(--text)}
 
 /* ── Layout ── */
-.layout{display:grid;grid-template-columns:240px 1fr 200px;min-height:100vh;padding-top:56px}
-@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar,.toc{display:none}}
+.page{display:none;min-height:100vh;padding-top:54px}
+.page.active{display:block}
 
-/* ── Left sidebar ── */
-.sidebar{
-  position:sticky;top:56px;height:calc(100vh - 56px);
-  overflow-y:auto;padding:1.5rem 0;
-  border-right:1px solid var(--border);
-}
-.sidebar-group{margin-bottom:1.5rem;padding:0 1rem}
-.sidebar-label{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:0.08em;text-transform:uppercase;padding:0 0.5rem;margin-bottom:0.4rem}
-.sidebar-link{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:6px;transition:all .15s;cursor:pointer}
-.sidebar-link:hover{color:var(--text);background:var(--bg3)}
-.sidebar-link.active{color:var(--accent);background:var(--accent-bg);font-weight:500}
-.sidebar-link .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0.5;flex-shrink:0}
-
-/* ── Main content ── */
-.main{min-width:0;padding:2.5rem 3rem;max-width:780px}
-@media(max-width:1100px){.main{padding:2rem 1.5rem}}
-
-/* ── Right TOC ── */
-.toc{position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;padding:1.5rem 1rem}
-.toc-label{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem}
-.toc-link{display:block;font-size:12px;color:var(--hint);text-decoration:none;padding:3px 0 3px 10px;border-left:2px solid transparent;transition:all .15s;line-height:1.4}
-.toc-link:hover,.toc-link.active{color:var(--accent);border-left-color:var(--accent)}
+/* ── Sidebar layout ── */
+.docs-layout{display:grid;grid-template-columns:230px 1fr 190px}
+@media(max-width:900px){.docs-layout{grid-template-columns:1fr}}
+.sidebar{position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;padding:1.25rem 0;border-right:1px solid var(--border)}
+.sb-grp{margin-bottom:1.25rem;padding:0 .875rem}
+.sb-lbl{font-size:10px;font-weight:600;color:var(--hint);letter-spacing:.1em;text-transform:uppercase;padding:0 .5rem;margin-bottom:5px}
+.sb-a{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);padding:5px 8px;border-radius:6px;transition:all .15s;cursor:pointer;text-decoration:none}
+.sb-a:hover{color:var(--text);background:var(--bg3)}
+.sb-a.active{color:var(--accent);background:var(--accent-bg);font-weight:500}
+.sb-dot{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0}
+.toc{position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;padding:1.5rem 1rem}
+.toc-lbl{font-size:10px;font-weight:600;color:var(--hint);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem}
+.toc-a{display:block;font-size:12px;color:var(--hint);text-decoration:none;padding:3px 0 3px 10px;border-left:2px solid transparent;transition:all .15s;line-height:1.5}
+.toc-a:hover,.toc-a.active{color:var(--accent);border-left-color:var(--accent)}
+.doc-main{padding:2.5rem 3rem;max-width:760px;min-width:0}
+@media(max-width:1100px){.doc-main{padding:2rem 1.5rem}}
 
 /* ── Hero ── */
-.hero{padding:3rem 0 2.5rem;border-bottom:1px solid var(--border);margin-bottom:3rem}
-.hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--green-text);background:var(--green-bg);padding:4px 10px;border-radius:20px;margin-bottom:1.25rem;font-weight:500}
-.hero-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
-.hero h1{font-size:2.25rem;font-weight:600;letter-spacing:-0.04em;line-height:1.15;margin-bottom:1rem;color:var(--text)}
-.hero h1 span{color:var(--accent)}
-.hero-desc{font-size:16px;color:var(--muted);max-width:540px;line-height:1.7;margin-bottom:2rem}
+.hero{padding:3.5rem 0 2.5rem;border-bottom:1px solid var(--border);margin-bottom:3rem}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--green-text);background:var(--green-bg);padding:4px 10px;border-radius:20px;margin-bottom:1.25rem;font-weight:500}
+.eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
+h1.hero-h{font-size:2.25rem;font-weight:600;letter-spacing:-.04em;line-height:1.15;margin-bottom:1rem}
+h1.hero-h span{color:var(--accent)}
+.hero-desc{font-size:16px;color:var(--muted);max-width:520px;line-height:1.7;margin-bottom:2rem}
 .hero-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.btn{padding:8px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:var(--sans)}
-.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-.btn-primary:hover{opacity:0.88}
-.btn-ghost{background:var(--bg);color:var(--text);border-color:var(--border2)}
-.btn-ghost:hover{background:var(--bg3);border-color:var(--border2)}
-.install-block{display:inline-flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px;font-family:var(--mono);font-size:13px;cursor:pointer;transition:border-color .15s}
-.install-block:hover{border-color:var(--accent)}
-.install-block .prefix{color:var(--hint)}
-.install-block .cmd{color:var(--text)}
-.install-block .copy-lbl{font-size:11px;color:var(--hint);margin-left:4px}
+.btn{padding:8px 18px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:var(--sans)}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{opacity:.87}
+.btn-g{background:var(--bg);color:var(--text);border-color:var(--border2)}.btn-g:hover{background:var(--bg3)}
+.install-pill{display:inline-flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;font-family:var(--mono);font-size:13px;cursor:pointer;transition:border-color .15s}
+.install-pill:hover{border-color:var(--accent)}
+.ip-pre{color:var(--hint)}.ip-cmd{color:var(--text)}.ip-lbl{font-size:11px;color:var(--hint);margin-left:4px}
+.stats-strip{display:flex;gap:2rem;padding:1.25rem 0;border-top:1px solid var(--border);margin-top:2rem;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat-v{font-size:1.2rem;font-weight:600;font-family:var(--mono)}
+.stat-l{font-size:11px;color:var(--hint)}
 
-/* ── Stats strip ── */
-.stats{display:flex;gap:2rem;padding:1.25rem 0;border-top:1px solid var(--border);margin-top:2rem}
-.stat-item{display:flex;flex-direction:column;gap:2px}
-.stat-val{font-size:1.25rem;font-weight:600;color:var(--text);font-family:var(--mono)}
-.stat-lbl{font-size:12px;color:var(--hint)}
-
-/* ── Section headings ── */
-.section-anchor{scroll-margin-top:72px}
-.page-title{font-size:1.75rem;font-weight:600;letter-spacing:-0.03em;margin-bottom:0.5rem;color:var(--text)}
+/* ── Section ── */
+.sec{scroll-margin-top:70px}
+.page-title{font-size:1.75rem;font-weight:600;letter-spacing:-.03em;margin-bottom:.5rem}
 .page-desc{font-size:15px;color:var(--muted);margin-bottom:2rem;line-height:1.7}
-h2.doc-h2{font-size:1.125rem;font-weight:600;margin:2.5rem 0 0.75rem;color:var(--text);letter-spacing:-0.02em;scroll-margin-top:72px}
-h3.doc-h3{font-size:14px;font-weight:600;margin:1.5rem 0 0.5rem;color:var(--text)}
-p.doc-p{font-size:14px;color:var(--muted);margin-bottom:0.75rem;line-height:1.75}
+h2.dh{font-size:1.1rem;font-weight:600;margin:2.5rem 0 .75rem;letter-spacing:-.02em;scroll-margin-top:70px}
+p.dp{font-size:14px;color:var(--muted);margin-bottom:.75rem;line-height:1.75}
+hr.dhr{border:none;border-top:1px solid var(--border);margin:3rem 0}
+code.ic{font-family:var(--mono);font-size:12px;background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--accent-text);border:1px solid var(--border)}
 
-/* ── Code blocks ── */
-pre.code{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius-lg);padding:1.125rem 1.25rem;
-  font-family:var(--mono);font-size:12.5px;overflow-x:auto;
-  line-height:1.85;margin:0.75rem 0 1.25rem;position:relative;
-}
-pre.code .copy-btn{
-  position:absolute;top:10px;right:10px;
-  background:var(--bg3);border:1px solid var(--border);
-  color:var(--hint);font-size:11px;padding:3px 8px;
-  border-radius:5px;cursor:pointer;font-family:var(--sans);
-  opacity:0;transition:opacity .15s;
-}
-pre.code:hover .copy-btn{opacity:1}
-pre.code .copy-btn:hover{color:var(--text)}
-.kw{color:#7c3aed}.str{color:#059669}.cm{color:#9ca3af}
-.fn{color:#2563eb}.num{color:#d97706}.cls{color:#db2777}
-code.inline{font-family:var(--mono);font-size:12px;background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--accent-text);border:1px solid var(--border)}
+/* ── Code block ── */
+pre.cb{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rlg);padding:1.1rem 1.25rem;font-family:var(--mono);font-size:12.5px;overflow-x:auto;line-height:1.85;margin:.75rem 0 1.25rem;position:relative}
+pre.cb .cpb{position:absolute;top:9px;right:9px;background:var(--bg3);border:1px solid var(--border);color:var(--hint);font-size:11px;padding:3px 8px;border-radius:5px;cursor:pointer;font-family:var(--sans);opacity:0;transition:opacity .15s}
+pre.cb:hover .cpb{opacity:1}
+pre.cb .cpb:hover{color:var(--text)}
+.kw{color:#7c3aed}.str{color:#059669}.cm{color:#9ca3af}.fn{color:#2563eb}.num{color:#d97706}
 
-/* ── Callouts ── */
-.callout{display:flex;gap:10px;padding:12px 14px;border-radius:var(--radius);margin:1rem 0;font-size:13px;line-height:1.6}
-.callout-info{background:var(--accent-bg);border:1px solid #c7c7f5;color:var(--accent-text)}
-.callout-tip{background:var(--green-bg);border:1px solid #bbf7d0;color:var(--green-text)}
-.callout-warn{background:var(--yellow-bg);border:1px solid #fde68a;color:#92400e}
-.callout-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+/* ── Callout ── */
+.callout{display:flex;gap:10px;padding:12px 14px;border-radius:var(--r);margin:1rem 0;font-size:13px;line-height:1.6}
+.c-info{background:var(--accent-bg);border:1px solid #c7c7f5;color:var(--accent-text)}
+.c-tip{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green-text)}
+.c-warn{background:var(--yellow-bg);border:1px solid #fde68a;color:#92400e}
+.ci{font-size:15px;flex-shrink:0;margin-top:1px}
 
-/* ── Table ── */
-.doc-table{width:100%;border-collapse:collapse;font-size:13px;margin:1rem 0 1.5rem}
-.doc-table th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:500;font-size:12px;border-bottom:1px solid var(--border);background:var(--bg2)}
-.doc-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text)}
-.doc-table td:first-child{font-family:var(--mono);color:var(--accent-text);font-size:12px}
-.doc-table tr:last-child td{border-bottom:none}
+/* ── Doc table ── */
+.dtbl{width:100%;border-collapse:collapse;font-size:13px;margin:1rem 0 1.5rem}
+.dtbl th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:500;font-size:12px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.dtbl td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+.dtbl td:first-child{font-family:var(--mono);color:var(--accent-text);font-size:12px}
+.dtbl tr:last-child td{border-bottom:none}
 
-/* ── Playground ── */
-.pg-wrap{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin:1.25rem 0}
-.pg-topbar{display:flex;align-items:center;gap:8px;padding:0.75rem 1rem;background:var(--bg2);border-bottom:1px solid var(--border)}
-.pg-dot{width:11px;height:11px;border-radius:50%}
-.pg-dot-r{background:#ff5f57}.pg-dot-y{background:#febc2e}.pg-dot-g{background:#28c840}
-.pg-file{font-family:var(--mono);font-size:12px;color:var(--hint);margin-left:6px}
-.pg-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0.75rem 1rem;background:var(--bg);border-bottom:1px solid var(--border)}
-.pg-chip{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:5px;background:var(--bg2);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
-.pg-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-.pg-body{display:grid;grid-template-columns:1fr 1fr;min-height:300px}
-@media(max-width:640px){.pg-body{grid-template-columns:1fr}}
-.pg-pane{display:flex;flex-direction:column}
-.pg-pane-hdr{padding:0.5rem 1rem;font-size:11px;font-family:var(--mono);color:var(--hint);border-bottom:1px solid var(--border);letter-spacing:0.06em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
-.pg-pane-r{border-left:1px solid var(--border)}
-textarea#qinput{
-  flex:1;background:var(--bg);border:none;outline:none;
-  padding:1rem;font-family:var(--mono);font-size:13px;
-  color:var(--text);resize:none;line-height:1.8;min-height:200px;
-}
-.pg-runbar{display:flex;align-items:center;gap:10px;padding:0.625rem 1rem;background:var(--bg2);border-top:1px solid var(--border)}
-.pg-run{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:opacity .15s}
-.pg-run:hover{opacity:0.85}
-.pg-hint{font-size:11px;color:var(--hint);font-family:var(--mono)}
-.pg-out{flex:1;padding:1rem;font-family:var(--mono);font-size:12px;overflow-y:auto;white-space:pre;line-height:1.85;background:var(--bg);color:var(--text);min-height:200px}
-.pg-rowcount{font-size:11px;color:var(--hint);font-family:var(--mono)}
-.pg-err{color:var(--red)}.pg-ok{color:var(--green)}.pg-dim{color:var(--hint)}
-.pg-col{color:var(--accent-text);font-weight:500}
-.pg-sep{color:var(--border2)}
+/* ── Method badges ── */
+.mb{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;font-family:var(--mono);vertical-align:middle;margin-right:6px}
+.mb-get{background:var(--green-bg);color:var(--green-text)}
+.mb-post{background:var(--accent-bg);color:var(--accent-text)}
+.mb-put{background:var(--yellow-bg);color:var(--yellow)}
+.mb-del{background:var(--red-bg);color:var(--red)}
 
-/* ── Divider ── */
-.doc-hr{border:none;border-top:1px solid var(--border);margin:3rem 0}
+/* ── API endpoint card ── */
+.ep-card{border:1px solid var(--border);border-radius:var(--rlg);margin:.75rem 0 1.5rem;overflow:hidden}
+.ep-head{display:flex;align-items:center;gap:10px;padding:.875rem 1.125rem;background:var(--bg2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.ep-path{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--text);flex:1}
+.ep-desc{font-size:12px;color:var(--muted)}
+.ep-body{padding:1.125rem;display:none}
+.ep-body.open{display:block}
+.ep-section{margin-bottom:1rem}
+.ep-section-lbl{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem}
+.param-row{display:grid;grid-template-columns:120px 80px 1fr;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid var(--bg3);align-items:start}
+.param-row:last-child{border-bottom:none}
+.param-name{font-family:var(--mono);color:var(--accent-text)}
+.param-type{color:var(--hint);font-family:var(--mono)}
+.param-desc{color:var(--muted);line-height:1.5}
+.try-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:opacity .15s}
+.try-btn:hover{opacity:.85}
+.ep-chevron{font-size:13px;color:var(--hint);transition:transform .2s;flex-shrink:0}
+.ep-chevron.open{transform:rotate(180deg)}
 
-/* ── Badges ── */
-.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;font-family:var(--mono);vertical-align:middle;margin-left:6px}
-.badge-get{background:var(--green-bg);color:var(--green-text)}
-.badge-new{background:var(--accent-bg);color:var(--accent-text)}
+/* ── Playground page ── */
+.pg-page{max-width:1100px;margin:0 auto;padding:2rem 1.5rem}
+.pg-header{margin-bottom:1.5rem}
+.pg-header h2{font-size:1.5rem;font-weight:600;letter-spacing:-.03em;margin-bottom:.4rem}
+.pg-header p{font-size:14px;color:var(--muted)}
+.pg-grid{display:grid;grid-template-columns:280px 1fr;gap:1.25rem;align-items:start}
+@media(max-width:760px){.pg-grid{grid-template-columns:1fr}}
 
-/* ── Footer ── */
-footer{border-top:1px solid var(--border);padding:2rem 3rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
-footer p{font-size:13px;color:var(--hint)}
-footer a{color:var(--muted);text-decoration:none}
-footer a:hover{color:var(--text)}
-.footer-links{display:flex;gap:1.25rem}
+/* sidebar panel */
+.pg-panel{background:var(--bg);border:1px solid var(--border);border-radius:var(--rlg);overflow:hidden}
+.pg-panel-hdr{padding:.625rem 1rem;font-size:11px;font-weight:600;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--bg2)}
+.pg-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border)}
+.pg-tab{padding:7px 4px;font-size:12px;font-weight:500;text-align:center;cursor:pointer;border:none;background:none;color:var(--muted);font-family:var(--sans);transition:all .15s;border-bottom:2px solid transparent}
+.pg-tab:hover{color:var(--text);background:var(--bg3)}
+.pg-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-bg)}
+
+/* editor */
+.editor-wrap{background:var(--bg);border:1px solid var(--border);border-radius:var(--rlg);overflow:hidden}
+.editor-topbar{display:flex;align-items:center;gap:7px;padding:.625rem 1rem;background:var(--bg2);border-bottom:1px solid var(--border)}
+.e-dot{width:11px;height:11px;border-radius:50%}
+.e-dot-r{background:#ff5f57}.e-dot-y{background:#febc2e}.e-dot-g{background:#28c840}
+.e-file{font-family:var(--mono);font-size:12px;color:var(--hint);margin-left:4px;flex:1}
+.mode-toggle{display:flex;gap:4px}
+.mode-btn{padding:3px 10px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .15s}
+.mode-btn.active{background:var(--accent-bg);color:var(--accent-text);border-color:#c7c7f5}
+.editor-body{display:grid;grid-template-columns:1fr 1fr;min-height:340px}
+@media(max-width:640px){.editor-body{grid-template-columns:1fr}}
+.e-pane{display:flex;flex-direction:column;overflow:hidden}
+.e-pane-hdr{padding:.45rem .875rem;font-size:10px;font-family:var(--mono);color:var(--hint);border-bottom:1px solid var(--border);letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
+.e-pane-r{border-left:1px solid var(--border)}
+textarea#pgq{flex:1;background:var(--bg);border:none;outline:none;padding:.875rem;font-family:var(--mono);font-size:13px;color:var(--text);resize:none;line-height:1.8;min-height:240px}
+.e-runbar{padding:.5rem .875rem;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.run-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:opacity .15s}
+.run-btn:hover{opacity:.85}
+#pgout{flex:1;padding:.875rem;font-family:var(--mono);font-size:12px;overflow:auto;background:var(--bg);white-space:pre;line-height:1.85;min-height:240px;color:var(--text)}
+.out-err{color:var(--red)}.out-ok{color:var(--green)}.out-dim{color:var(--hint)}
+.out-col{color:var(--accent-text);font-weight:500}.out-sep{color:var(--border2)}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:5px;padding:.6rem .875rem;border-top:1px solid var(--border);background:var(--bg)}
+.chip{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:5px;background:var(--bg2);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.chip.cat{background:var(--bg3);font-family:var(--sans);font-size:10px;font-weight:600;color:var(--hint);letter-spacing:.06em;text-transform:uppercase;cursor:default;border-color:transparent}
+.chip.cat:hover{background:var(--bg3);color:var(--hint);border-color:transparent}
+
+/* DB panel */
+.db-info{padding:.75rem 1rem}
+.db-stat{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bg3);font-size:12px}
+.db-stat:last-child{border-bottom:none}
+.db-stat-lbl{color:var(--muted)}
+.db-stat-val{font-family:var(--mono);font-weight:500;color:var(--text)}
+.tbl-entry{display:flex;align-items:center;justify-content:space-between;padding:6px 1rem;font-size:12px;border-bottom:1px solid var(--bg3);cursor:pointer;transition:background .15s}
+.tbl-entry:hover{background:var(--bg3)}
+.tbl-entry:last-child{border-bottom:none}
+.tbl-name{font-family:var(--mono);color:var(--accent-text)}
+.tbl-cnt{font-size:11px;color:var(--hint);background:var(--bg2);border:1px solid var(--border);padding:1px 6px;border-radius:10px}
+
+/* history */
+.hist-item{display:flex;align-items:center;gap:8px;padding:6px 1rem;font-size:12px;border-bottom:1px solid var(--bg3);cursor:pointer;transition:background .15s}
+.hist-item:hover{background:var(--bg3)}
+.hist-q{font-family:var(--mono);color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-time{font-size:10px;color:var(--hint);flex-shrink:0}
+.hist-empty{padding:1rem;font-size:12px;color:var(--hint);text-align:center}
+
+/* result tabs */
+.result-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg2)}
+.rtab{padding:.4rem .875rem;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;border:none;background:none;font-family:var(--sans)}
+.rtab.active{color:var(--accent);border-bottom:2px solid var(--accent)}
+.rtab:hover{color:var(--text)}
+#pgout-json{flex:1;padding:.875rem;font-family:var(--mono);font-size:12px;overflow:auto;background:var(--bg);white-space:pre;line-height:1.85;min-height:200px;display:none;color:var(--text)}
 </style>
 </head>
 <body>
 
-<!-- ── Top nav ── -->
-<nav class="topnav">
-  <a class="logo" href="#">
-    NeevDB
-    <span class="logo-badge">v1.0</span>
-  </a>
-  <div class="topnav-links">
-    <a href="#playground">Playground</a>
-    <a href="#docs">Docs</a>
+<!-- ── Nav ── -->
+<nav class="nav">
+  <a class="logo" href="#">NeevDB <span class="logo-v">v3.0.0</span></a>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('docs')">📖 Docs</button>
+    <button class="nav-tab" onclick="showPage('api')">🔗 API</button>
+    <button class="nav-tab" onclick="showPage('playground')">⚡ Playground</button>
+  </div>
+  <div class="nav-right">
     <a href="https://github.com/manish780386/NeevDB" target="_blank">GitHub</a>
-    <a href="https://pypi.org/project/neevdb" target="_blank" class="btn-nav">PyPI ↗</a>
+    <a href="https://pypi.org/project/neevdb" target="_blank" class="pip">PyPI ↗</a>
   </div>
 </nav>
 
-<div class="layout">
+<!-- ══════════════════════════════════════════════
+     PAGE 1 — DOCS
+══════════════════════════════════════════════ -->
+<div class="page active" id="page-docs">
+<div class="docs-layout">
 
-<!-- ── Left sidebar ── -->
 <aside class="sidebar">
-  <div class="sidebar-group">
-    <div class="sidebar-label">Overview</div>
-    <a class="sidebar-link active" onclick="scrollTo('hero')"><span class="dot"></span>Introduction</a>
-    <a class="sidebar-link" onclick="scrollTo('playground')"><span class="dot"></span>Playground</a>
+  <div class="sb-grp">
+    <div class="sb-lbl">Overview</div>
+    <a class="sb-a active" onclick="ss('hero')"><span class="sb-dot"></span>Introduction</a>
   </div>
-  <div class="sidebar-group">
-    <div class="sidebar-label">Getting started</div>
-    <a class="sidebar-link" onclick="scrollTo('install')"><span class="dot"></span>Installation</a>
-    <a class="sidebar-link" onclick="scrollTo('connect')"><span class="dot"></span>Connect</a>
-    <a class="sidebar-link" onclick="scrollTo('tables')"><span class="dot"></span>Tables</a>
+  <div class="sb-grp">
+    <div class="sb-lbl">Getting started</div>
+    <a class="sb-a" onclick="ss('install')"><span class="sb-dot"></span>Installation</a>
+    <a class="sb-a" onclick="ss('connect')"><span class="sb-dot"></span>Connect</a>
+    <a class="sb-a" onclick="ss('tables')"><span class="sb-dot"></span>Tables</a>
   </div>
-  <div class="sidebar-group">
-    <div class="sidebar-label">CRUD</div>
-    <a class="sidebar-link" onclick="scrollTo('insert')"><span class="dot"></span>Insert</a>
-    <a class="sidebar-link" onclick="scrollTo('find')"><span class="dot"></span>Find</a>
-    <a class="sidebar-link" onclick="scrollTo('update')"><span class="dot"></span>Update</a>
-    <a class="sidebar-link" onclick="scrollTo('delete')"><span class="dot"></span>Delete</a>
+  <div class="sb-grp">
+    <div class="sb-lbl">CRUD</div>
+    <a class="sb-a" onclick="ss('insert')"><span class="sb-dot"></span>Insert</a>
+    <a class="sb-a" onclick="ss('find')"><span class="sb-dot"></span>Find</a>
+    <a class="sb-a" onclick="ss('update')"><span class="sb-dot"></span>Update</a>
+    <a class="sb-a" onclick="ss('delete')"><span class="sb-dot"></span>Delete</a>
   </div>
-  <div class="sidebar-group">
-    <div class="sidebar-label">Query engine</div>
-    <a class="sidebar-link" onclick="scrollTo('select')"><span class="dot"></span>SELECT</a>
-    <a class="sidebar-link" onclick="scrollTo('where')"><span class="dot"></span>WHERE</a>
-    <a class="sidebar-link" onclick="scrollTo('orderby')"><span class="dot"></span>ORDER BY</a>
-    <a class="sidebar-link" onclick="scrollTo('limit')"><span class="dot"></span>LIMIT</a>
+  <div class="sb-grp">
+    <div class="sb-lbl">Query engine</div>
+    <a class="sb-a" onclick="ss('select')"><span class="sb-dot"></span>SELECT</a>
+    <a class="sb-a" onclick="ss('where')"><span class="sb-dot"></span>WHERE</a>
+    <a class="sb-a" onclick="ss('orderby')"><span class="sb-dot"></span>ORDER BY</a>
+    <a class="sb-a" onclick="ss('limit')"><span class="sb-dot"></span>LIMIT</a>
   </div>
-  <div class="sidebar-group">
-    <div class="sidebar-label">CLI</div>
-    <a class="sidebar-link" onclick="scrollTo('cli')"><span class="dot"></span>CLI shell</a>
+  <div class="sb-grp">
+    <div class="sb-lbl">CLI</div>
+    <a class="sb-a" onclick="ss('cli')"><span class="sb-dot"></span>CLI shell</a>
+  </div>
+  <div class="sb-grp">
+    <div class="sb-lbl">Server</div>
+    <a class="sb-a" onclick="ss('server')"><span class="sb-dot"></span>Start server</a>
   </div>
 </aside>
 
-<!-- ── Main ── -->
-<main class="main">
+<main class="doc-main">
 
-  <!-- Hero -->
-  <section id="hero" class="hero section-anchor">
-    <div class="hero-eyebrow">Stable · v1.0.0 released</div>
-    <h1>The database engine<br>you can <span>actually read</span></h1>
-    <p class="hero-desc">NeevDB is a lightweight, file-based database built from scratch in pure Python. No dependencies. No setup. Just <code class="inline">pip install</code> and go.</p>
+  <section id="hero" class="hero sec">
+    <div class="eyebrow">Stable · v2.0.0 released</div>
+    <h1 class="hero-h">The database engine<br>you can <span>actually read</span></h1>
+    <p class="hero-desc">NeevDB is a lightweight, file-based database built from scratch in pure Python. No dependencies. No setup. Just <code class="ic">pip install</code> and go.</p>
     <div class="hero-actions">
-      <div class="install-block" onclick="copyCmd()">
-        <span class="prefix">$</span>
-        <span class="cmd">pip install neevdb</span>
-        <span class="copy-lbl" id="clbl">copy</span>
+      <div class="install-pill" onclick="copyCmd()">
+        <span class="ip-pre">$</span><span class="ip-cmd">pip install neevdb</span>
+        <span class="ip-lbl" id="iplbl">copy</span>
       </div>
-      <a href="#playground" class="btn btn-primary">Try in browser</a>
-      <a href="#docs" class="btn btn-ghost">Read docs</a>
+      <button class="btn btn-p" onclick="showPage('playground')">Try playground</button>
+      <button class="btn btn-g" onclick="showPage('api')">API docs</button>
     </div>
-    <div class="stats">
-      <div class="stat-item"><span class="stat-val">0</span><span class="stat-lbl">dependencies</span></div>
-      <div class="stat-item"><span class="stat-val">5</span><span class="stat-lbl">source files</span></div>
-      <div class="stat-item"><span class="stat-val">Python 3.7+</span><span class="stat-lbl">required</span></div>
-      <div class="stat-item"><span class="stat-val">MIT</span><span class="stat-lbl">license</span></div>
-    </div>
-  </section>
-
-  <!-- Playground -->
-  <section id="playground" class="section-anchor">
-    <h2 class="doc-h2" style="margin-top:0">Live playground</h2>
-    <p class="doc-p">No install needed. A sample database with <code class="inline">users</code> and <code class="inline">products</code> tables is preloaded. Write a query and press Run — or pick a sample below.</p>
-
-    <div class="pg-wrap">
-      <div class="pg-topbar">
-        <div class="pg-dot pg-dot-r"></div>
-        <div class="pg-dot pg-dot-y"></div>
-        <div class="pg-dot pg-dot-g"></div>
-        <span class="pg-file">playground.py — NeevDB interactive</span>
-      </div>
-      <div class="pg-chips">
-        <button class="pg-chip" onclick="qs('SELECT * FROM users')">SELECT *</button>
-        <button class="pg-chip" onclick="qs('SELECT * FROM users WHERE age > 20')">WHERE age &gt; 20</button>
-        <button class="pg-chip" onclick="qs('SELECT name, city FROM users ORDER BY age DESC')">ORDER BY age DESC</button>
-        <button class="pg-chip" onclick="qs('SELECT * FROM users LIMIT 3')">LIMIT 3</button>
-        <button class="pg-chip" onclick="qs('SELECT * FROM products WHERE price < 5000')">Products &lt; 5000</button>
-        <button class="pg-chip" onclick="qs('SELECT name, price FROM products ORDER BY price DESC LIMIT 3')">Top 3 products</button>
-        <button class="pg-chip" onclick="qs('SHOW TABLES')">SHOW TABLES</button>
-        <button class="pg-chip" onclick="qs('INSERT INTO users name=Manish age=21 city=Indore')">INSERT row</button>
-        <button class="pg-chip" onclick="qs('SELECT * FROM users WHERE city = Mumbai')">city = Mumbai</button>
-        <button class="pg-chip" onclick="qs('SELECT name FROM users WHERE age >= 25 ORDER BY name')">age &gt;= 25</button>
-      </div>
-      <div class="pg-body">
-        <div class="pg-pane">
-          <div class="pg-pane-hdr"><span>Query</span><span style="color:var(--accent-text);font-size:10px">Ctrl+Enter to run</span></div>
-          <textarea id="qinput" spellcheck="false">SELECT * FROM users</textarea>
-          <div class="pg-runbar">
-            <button class="pg-run" onclick="runQ()">&#9654; Run</button>
-            <span class="pg-hint">Ctrl+Enter</span>
-          </div>
-        </div>
-        <div class="pg-pane pg-pane-r">
-          <div class="pg-pane-hdr"><span>Output</span><span class="pg-rowcount" id="rcount"></span></div>
-          <div class="pg-out" id="qout"><span class="pg-dim">// results appear here</span></div>
-        </div>
-      </div>
+    <div class="stats-strip">
+      <div class="stat"><span class="stat-v">0</span><span class="stat-l">dependencies</span></div>
+      <div class="stat"><span class="stat-v">5</span><span class="stat-l">source files</span></div>
+      <div class="stat"><span class="stat-v">REST API</span><span class="stat-l">optional server</span></div>
+      <div class="stat"><span class="stat-v">MIT</span><span class="stat-l">license</span></div>
     </div>
   </section>
 
-  <hr class="doc-hr" id="docs">
-
-  <!-- Install -->
-  <section id="install" class="section-anchor">
+  <section id="install" class="sec">
     <h1 class="page-title">Getting started</h1>
-    <p class="page-desc">NeevDB is on PyPI. Install it with pip, import it, and you have a working database in three lines.</p>
-
-    <h2 class="doc-h2">Installation</h2>
-    <p class="doc-p">Requires Python 3.7 or newer. No other dependencies.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># Install from PyPI</span>
+    <p class="page-desc">Install NeevDB from PyPI. Requires Python 3.7 or newer.</p>
+    <h2 class="dh">Installation</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button><span class="cm"># Core install (zero dependencies)</span>
 pip install neevdb
+
+<span class="cm"># With REST API server support</span>
+pip install neevdb[server]
 
 <span class="cm"># Verify</span>
 pip show neevdb</pre>
   </section>
 
-  <!-- Connect -->
-  <section id="connect" class="section-anchor">
-    <h2 class="doc-h2">Connect to a database</h2>
-    <p class="doc-p">Pass a file path to <code class="inline">NeevDB()</code>. The file is created automatically if it doesn't exist. All data is stored as human-readable JSON.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="kw">from</span> neevdb <span class="kw">import</span> NeevDB
+  <section id="connect" class="sec">
+    <h2 class="dh">Connect to a database</h2>
+    <p class="dp">Pass a file path to <code class="ic">NeevDB()</code>. The file is created automatically. All data is stored as human-readable JSON.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button><span class="kw">from</span> neevdb <span class="kw">import</span> NeevDB
 
 <span class="cm"># Creates 'mydata.json' if it doesn't exist</span>
 db = <span class="fn">NeevDB</span>(<span class="str">"mydata.json"</span>)
 
 <span class="cm"># Defaults to 'neevdb.json'</span>
 db = <span class="fn">NeevDB</span>()</pre>
-    <div class="callout callout-tip">
-      <span class="callout-icon">💡</span>
-      <span>The JSON file is fully human-readable. Open it in any text editor to inspect or back up your data.</span>
-    </div>
+    <div class="callout c-tip"><span class="ci">💡</span><span>The JSON file is fully human-readable. Open it in any text editor to inspect your data.</span></div>
   </section>
 
-  <!-- Tables -->
-  <section id="tables" class="section-anchor">
-    <h2 class="doc-h2">Tables</h2>
-    <p class="doc-p">Tables are collections of records — like sheets in a spreadsheet. Create one before inserting data.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># Create a table</span>
-db.<span class="fn">create_table</span>(<span class="str">"users"</span>)
-
-<span class="cm"># List all tables</span>
-db.<span class="fn">list_tables</span>()
-<span class="cm"># → ['users']</span>
-
-<span class="cm"># Delete a table permanently</span>
+  <section id="tables" class="sec">
+    <h2 class="dh">Tables</h2>
+    <p class="dp">Tables hold collections of records — like sheets in a spreadsheet. Create one before inserting data.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>db.<span class="fn">create_table</span>(<span class="str">"users"</span>)
+db.<span class="fn">list_tables</span>()    <span class="cm"># → ['users']</span>
 db.<span class="fn">drop_table</span>(<span class="str">"users"</span>)</pre>
   </section>
 
-  <hr class="doc-hr">
+  <hr class="dhr">
 
-  <!-- Insert -->
-  <section id="insert" class="section-anchor">
+  <section id="insert" class="sec">
     <h1 class="page-title">CRUD operations</h1>
-    <p class="page-desc">The four core operations — Create, Read, Update, Delete — cover everything you need to manage data.</p>
-
-    <h2 class="doc-h2">Insert</h2>
-    <p class="doc-p">Add a new record to a table. Every record automatically gets <code class="inline">_id</code> and <code class="inline">_created_at</code> fields.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>record = db.<span class="fn">insert</span>(<span class="str">"users"</span>, {
+    <p class="page-desc">Create, Read, Update, Delete — the four core operations.</p>
+    <h2 class="dh">Insert</h2>
+    <p class="dp">Add a record. Every record automatically gets <code class="ic">_id</code> and <code class="ic">_created_at</code>.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>record = db.<span class="fn">insert</span>(<span class="str">"users"</span>, {
     <span class="str">"name"</span>: <span class="str">"Alice"</span>,
     <span class="str">"age"</span>:  <span class="num">25</span>,
     <span class="str">"city"</span>: <span class="str">"Mumbai"</span>
 })
-
-<span class="cm"># Returns the full record:</span>
-<span class="cm"># { name: Alice, age: 25, _id: 1, _created_at: 2026-01-01T... }</span></pre>
+<span class="cm"># → { name: Alice, age: 25, _id: 1, _created_at: ... }</span></pre>
   </section>
 
-  <!-- Find -->
-  <section id="find" class="section-anchor">
-    <h2 class="doc-h2">Find</h2>
-    <p class="doc-p">Read records using <code class="inline">find_all()</code> to get everything, or <code class="inline">find()</code> with a condition function to filter.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># All records</span>
-all_users = db.<span class="fn">find_all</span>(<span class="str">"users"</span>)
+  <section id="find" class="sec">
+    <h2 class="dh">Find</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button><span class="cm"># All records</span>
+db.<span class="fn">find_all</span>(<span class="str">"users"</span>)
 
-<span class="cm"># Records matching a condition</span>
-adults = db.<span class="fn">find</span>(<span class="str">"users"</span>, <span class="kw">lambda</span> r: r[<span class="str">"age"</span>] > <span class="num">18</span>)
+<span class="cm"># With condition</span>
+db.<span class="fn">find</span>(<span class="str">"users"</span>, <span class="kw">lambda</span> r: r[<span class="str">"age"</span>] > <span class="num">18</span>)
 
-<span class="cm"># Mumbai users only</span>
-local = db.<span class="fn">find</span>(<span class="str">"users"</span>, <span class="kw">lambda</span> r: r[<span class="str">"city"</span>] == <span class="str">"Mumbai"</span>)
-
-<span class="cm"># Count records</span>
-total = db.<span class="fn">count</span>(<span class="str">"users"</span>)  <span class="cm"># → 5</span></pre>
+<span class="cm"># Count</span>
+db.<span class="fn">count</span>(<span class="str">"users"</span>)  <span class="cm"># → 5</span></pre>
   </section>
 
-  <!-- Update -->
-  <section id="update" class="section-anchor">
-    <h2 class="doc-h2">Update</h2>
-    <p class="doc-p">Update all records matching a condition. Pass new field values as a dictionary. Returns the count of updated rows.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>updated = db.<span class="fn">update</span>(
+  <section id="update" class="sec">
+    <h2 class="dh">Update</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>db.<span class="fn">update</span>(
     <span class="str">"users"</span>,
-    <span class="kw">lambda</span> r: r[<span class="str">"name"</span>] == <span class="str">"Alice"</span>,   <span class="cm"># condition</span>
-    {<span class="str">"city"</span>: <span class="str">"Delhi"</span>, <span class="str">"age"</span>: <span class="num">26</span>}       <span class="cm"># new values</span>
-)
-<span class="cm"># updated → 1</span></pre>
+    <span class="kw">lambda</span> r: r[<span class="str">"name"</span>] == <span class="str">"Alice"</span>,
+    {<span class="str">"city"</span>: <span class="str">"Delhi"</span>, <span class="str">"age"</span>: <span class="num">26</span>}
+)  <span class="cm"># → 1</span></pre>
   </section>
 
-  <!-- Delete -->
-  <section id="delete" class="section-anchor">
-    <h2 class="doc-h2">Delete</h2>
-    <p class="doc-p">Delete all records matching a condition. Returns the count of deleted rows.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>deleted = db.<span class="fn">delete</span>(
-    <span class="str">"users"</span>,
-    <span class="kw">lambda</span> r: r[<span class="str">"age"</span>] < <span class="num">18</span>
-)
-<span class="cm"># deleted → 1</span></pre>
-    <div class="callout callout-warn">
-      <span class="callout-icon">⚠️</span>
-      <span>Delete is permanent. There is no undo. Double-check your condition before running.</span>
-    </div>
+  <section id="delete" class="sec">
+    <h2 class="dh">Delete</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>db.<span class="fn">delete</span>(<span class="str">"users"</span>, <span class="kw">lambda</span> r: r[<span class="str">"age"</span>] &lt; <span class="num">18</span>)
+<span class="cm"># → 1</span></pre>
+    <div class="callout c-warn"><span class="ci">⚠️</span><span>Delete is permanent. There is no undo.</span></div>
   </section>
 
-  <hr class="doc-hr">
+  <hr class="dhr">
 
-  <!-- SELECT -->
-  <section id="select" class="section-anchor">
+  <section id="select" class="sec">
     <h1 class="page-title">Query engine</h1>
-    <p class="page-desc">Run SQL-like query strings with <code class="inline">db.query()</code>. Combine SELECT, WHERE, ORDER BY, and LIMIT freely.</p>
-
-    <h2 class="doc-h2">SELECT</h2>
-    <p class="doc-p">Use <code class="inline">SELECT *</code> for all columns, or name specific columns separated by commas.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># All columns</span>
-db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users"</span>)
-
-<span class="cm"># Specific columns only</span>
+    <p class="page-desc">Run SQL-like strings with <code class="ic">db.query()</code>. Combine WHERE, ORDER BY, and LIMIT freely.</p>
+    <h2 class="dh">SELECT</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users"</span>)
 db.<span class="fn">query</span>(<span class="str">"SELECT name, city FROM users"</span>)
-
-<span class="cm"># Combined with other clauses</span>
 db.<span class="fn">query</span>(<span class="str">"SELECT name FROM users WHERE age > 18 ORDER BY name LIMIT 5"</span>)</pre>
   </section>
 
-  <!-- WHERE -->
-  <section id="where" class="section-anchor">
-    <h2 class="doc-h2">WHERE</h2>
-    <p class="doc-p">Filter records by a condition. Works with text fields and number fields.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE age > 18"</span>)
+  <section id="where" class="sec">
+    <h2 class="dh">WHERE</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE age > 18"</span>)
 db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE city = Mumbai"</span>)
-db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE age != 25"</span>)
 db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE age >= 21"</span>)</pre>
-
-    <table class="doc-table">
+    <table class="dtbl">
       <thead><tr><th>Operator</th><th>Meaning</th><th>Example</th></tr></thead>
       <tbody>
         <tr><td>=</td><td>Equal to</td><td>WHERE city = Mumbai</td></tr>
-        <tr><td>!=</td><td>Not equal to</td><td>WHERE status != inactive</td></tr>
+        <tr><td>!=</td><td>Not equal</td><td>WHERE status != inactive</td></tr>
         <tr><td>&gt;</td><td>Greater than</td><td>WHERE age &gt; 18</td></tr>
         <tr><td>&lt;</td><td>Less than</td><td>WHERE price &lt; 500</td></tr>
         <tr><td>&gt;=</td><td>Greater or equal</td><td>WHERE score &gt;= 90</td></tr>
@@ -452,228 +391,734 @@ db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users WHERE ag
     </table>
   </section>
 
-  <!-- ORDER BY -->
-  <section id="orderby" class="section-anchor">
-    <h2 class="doc-h2">ORDER BY</h2>
-    <p class="doc-p">Sort results by any field. Default is ascending (A→Z, 0→9). Add <code class="inline">DESC</code> to reverse.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># Ascending (default)</span>
-db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users ORDER BY name"</span>)
-
-<span class="cm"># Descending — highest first</span>
+  <section id="orderby" class="sec">
+    <h2 class="dh">ORDER BY</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users ORDER BY name"</span>)
 db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users ORDER BY age DESC"</span>)</pre>
   </section>
 
-  <!-- LIMIT -->
-  <section id="limit" class="section-anchor">
-    <h2 class="doc-h2">LIMIT</h2>
-    <p class="doc-p">Return only the first N records. Useful combined with ORDER BY to get top results.</p>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># First 5 records</span>
-db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users LIMIT 5"</span>)
-
-<span class="cm"># Top 3 highest-priced products</span>
+  <section id="limit" class="sec">
+    <h2 class="dh">LIMIT</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>db.<span class="fn">query</span>(<span class="str">"SELECT * FROM users LIMIT 5"</span>)
 db.<span class="fn">query</span>(<span class="str">"SELECT name, price FROM products ORDER BY price DESC LIMIT 3"</span>)</pre>
   </section>
 
-  <hr class="doc-hr">
+  <hr class="dhr">
 
-  <!-- CLI -->
-  <section id="cli" class="section-anchor">
+  <section id="cli" class="sec">
     <h1 class="page-title">CLI shell</h1>
-    <p class="page-desc">Run queries from your terminal without writing any Python. Launch the shell with one command.</p>
-
-    <h2 class="doc-h2">Starting the shell</h2>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button><span class="cm"># Default database (neevdb.json)</span>
-python cli.py
-
-<span class="cm"># Specific database file</span>
+    <p class="page-desc">Run queries from your terminal without writing Python.</p>
+    <h2 class="dh">Start the shell</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>python cli.py
 python cli.py mydata.json</pre>
-
-    <h2 class="doc-h2">CLI commands</h2>
-    <pre class="code"><button class="copy-btn" onclick="cp(this)">copy</button>NeevDB &gt; SHOW TABLES
+    <h2 class="dh">Commands</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>NeevDB &gt; SHOW TABLES
 NeevDB &gt; CREATE TABLE users
 NeevDB &gt; INSERT INTO users name=Alice age=25 city=Mumbai
-NeevDB &gt; SELECT * FROM users WHERE age &gt; 18
-NeevDB &gt; SELECT * FROM users ORDER BY age DESC LIMIT 5
+NeevDB &gt; SELECT * FROM users WHERE age &gt; 18 ORDER BY name LIMIT 5
 NeevDB &gt; DELETE FROM users WHERE name = Alice
-NeevDB &gt; DROP TABLE users
 NeevDB &gt; HELP
 NeevDB &gt; EXIT</pre>
+  </section>
 
-    <div class="callout callout-info">
-      <span class="callout-icon">ℹ️</span>
-      <span>The CLI supports the same WHERE operators and ORDER BY / LIMIT syntax as the Python query engine.</span>
-    </div>
+  <section id="server" class="sec">
+    <h1 class="page-title">REST API server</h1>
+    <p class="page-desc">Start a full REST API server on top of your NeevDB database with one command.</p>
+    <h2 class="dh">Quick start</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button><span class="cm"># Install server dependencies</span>
+pip install neevdb[server]
+
+<span class="cm"># Start server (opens browser automatically)</span>
+python start.py
+
+<span class="cm"># Or use from Python</span>
+<span class="kw">from</span> neevdb.server <span class="kw">import</span> start
+start(db_path=<span class="str">"mydata.json"</span>, port=<span class="num">8000</span>)</pre>
+    <div class="callout c-info"><span class="ci">ℹ️</span><span>Once running, visit <strong>http://localhost:8000</strong> for the dashboard and <strong>/docs</strong> for the auto-generated Swagger UI.</span></div>
+    <h2 class="dh">Use from any frontend</h2>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button"><span class="cm">// JavaScript — fetch NeevDB data from any app</span>
+<span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'http://localhost:8000/api/tables/users/records?where=age>18'</span>)
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>()
+console.<span class="fn">log</span>(data.records)</pre>
+    <div class="callout c-tip"><span class="ci">🚀</span><span>See the <strong>API tab</strong> for full endpoint documentation with live examples.</span></div>
   </section>
 
 </main>
 
-<!-- ── Right TOC ── -->
 <aside class="toc">
-  <div class="toc-label">On this page</div>
-  <a class="toc-link" onclick="scrollTo('hero')">Introduction</a>
-  <a class="toc-link" onclick="scrollTo('playground')">Playground</a>
-  <a class="toc-link" onclick="scrollTo('install')">Installation</a>
-  <a class="toc-link" onclick="scrollTo('connect')">Connect</a>
-  <a class="toc-link" onclick="scrollTo('tables')">Tables</a>
-  <a class="toc-link" onclick="scrollTo('insert')">Insert</a>
-  <a class="toc-link" onclick="scrollTo('find')">Find</a>
-  <a class="toc-link" onclick="scrollTo('update')">Update</a>
-  <a class="toc-link" onclick="scrollTo('delete')">Delete</a>
-  <a class="toc-link" onclick="scrollTo('select')">SELECT</a>
-  <a class="toc-link" onclick="scrollTo('where')">WHERE</a>
-  <a class="toc-link" onclick="scrollTo('orderby')">ORDER BY</a>
-  <a class="toc-link" onclick="scrollTo('limit')">LIMIT</a>
-  <a class="toc-link" onclick="scrollTo('cli')">CLI shell</a>
+  <div class="toc-lbl">On this page</div>
+  <a class="toc-a" onclick="ss('hero')">Introduction</a>
+  <a class="toc-a" onclick="ss('install')">Installation</a>
+  <a class="toc-a" onclick="ss('connect')">Connect</a>
+  <a class="toc-a" onclick="ss('tables')">Tables</a>
+  <a class="toc-a" onclick="ss('insert')">Insert</a>
+  <a class="toc-a" onclick="ss('find')">Find</a>
+  <a class="toc-a" onclick="ss('update')">Update</a>
+  <a class="toc-a" onclick="ss('delete')">Delete</a>
+  <a class="toc-a" onclick="ss('select')">SELECT</a>
+  <a class="toc-a" onclick="ss('where')">WHERE</a>
+  <a class="toc-a" onclick="ss('orderby')">ORDER BY</a>
+  <a class="toc-a" onclick="ss('limit')">LIMIT</a>
+  <a class="toc-a" onclick="ss('cli')">CLI shell</a>
+  <a class="toc-a" onclick="ss('server')">REST API server</a>
 </aside>
 
 </div>
+</div>
 
-<footer>
-  <p>Built by <strong>Manish Dange</strong> &nbsp;·&nbsp; <a href="https://github.com/manish780386/NeevDB">GitHub</a> &nbsp;·&nbsp; <a href="https://pypi.org/project/neevdb">PyPI</a></p>
-  <p style="font-size:12px;margin-top:4px">"Neev" means foundation in Hindi.</p>
-</footer>
+<!-- ══════════════════════════════════════════════
+     PAGE 2 — API DOCS
+══════════════════════════════════════════════ -->
+<div class="page" id="page-api">
+<div class="docs-layout">
+
+<aside class="sidebar">
+  <div class="sb-grp">
+    <div class="sb-lbl">Info</div>
+    <a class="sb-a active" onclick="sa('api-overview')"><span class="sb-dot"></span>Overview</a>
+    <a class="sb-a" onclick="sa('api-auth')"><span class="sb-dot"></span>Base URL</a>
+  </div>
+  <div class="sb-grp">
+    <div class="sb-lbl">Tables</div>
+    <a class="sb-a" onclick="sa('api-list-tables')"><span class="sb-dot"></span>List tables</a>
+    <a class="sb-a" onclick="sa('api-create-table')"><span class="sb-dot"></span>Create table</a>
+    <a class="sb-a" onclick="sa('api-drop-table')"><span class="sb-dot"></span>Drop table</a>
+  </div>
+  <div class="sb-grp">
+    <div class="sb-lbl">Records</div>
+    <a class="sb-a" onclick="sa('api-get-records')"><span class="sb-dot"></span>Get records</a>
+    <a class="sb-a" onclick="sa('api-get-one')"><span class="sb-dot"></span>Get by ID</a>
+    <a class="sb-a" onclick="sa('api-insert')"><span class="sb-dot"></span>Insert record</a>
+    <a class="sb-a" onclick="sa('api-update')"><span class="sb-dot"></span>Update record</a>
+    <a class="sb-a" onclick="sa('api-delete')"><span class="sb-dot"></span>Delete record</a>
+  </div>
+  <div class="sb-grp">
+    <div class="sb-lbl">Query</div>
+    <a class="sb-a" onclick="sa('api-query')"><span class="sb-dot"></span>Run query</a>
+    <a class="sb-a" onclick="sa('api-stats')"><span class="sb-dot"></span>Stats</a>
+  </div>
+</aside>
+
+<main class="doc-main">
+
+  <section id="api-overview" class="sec">
+    <h1 class="page-title">API Reference</h1>
+    <p class="page-desc">NeevDB exposes a full REST API when you run <code class="ic">python start.py</code>. Every endpoint returns JSON.</p>
+    <div class="callout c-info"><span class="ci">ℹ️</span><span>Start the server first: <code class="ic">python start.py</code> — then open <strong>http://localhost:8000</strong></span></div>
+    <h2 class="dh">All endpoints at a glance</h2>
+    <table class="dtbl">
+      <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mb mb-get">GET</span>/api</td><td colspan="0"></td><td>Health check</td></tr>
+        <tr><td><span class="mb mb-get">GET</span>/api/stats</td><td colspan="0"></td><td>Database statistics</td></tr>
+        <tr><td><span class="mb mb-get">GET</span>/api/tables</td><td colspan="0"></td><td>List all tables</td></tr>
+        <tr><td><span class="mb mb-post">POST</span>/api/tables/{name}</td><td colspan="0"></td><td>Create a table</td></tr>
+        <tr><td><span class="mb mb-del">DEL</span>/api/tables/{name}</td><td colspan="0"></td><td>Drop a table</td></tr>
+        <tr><td><span class="mb mb-get">GET</span>/api/tables/{name}/records</td><td colspan="0"></td><td>Get records (with filters)</td></tr>
+        <tr><td><span class="mb mb-get">GET</span>/api/tables/{name}/records/{id}</td><td colspan="0"></td><td>Get single record</td></tr>
+        <tr><td><span class="mb mb-post">POST</span>/api/tables/{name}/records</td><td colspan="0"></td><td>Insert a record</td></tr>
+        <tr><td><span class="mb mb-put">PUT</span>/api/tables/{name}/records/{id}</td><td colspan="0"></td><td>Update a record</td></tr>
+        <tr><td><span class="mb mb-del">DEL</span>/api/tables/{name}/records/{id}</td><td colspan="0"></td><td>Delete a record</td></tr>
+        <tr><td><span class="mb mb-post">POST</span>/api/query</td><td colspan="0"></td><td>Run SQL-like query</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="api-auth" class="sec">
+    <h2 class="dh">Base URL</h2>
+    <p class="dp">All endpoints are relative to the base URL. By default:</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>http://localhost:8000</pre>
+    <p class="dp">All responses are JSON. All POST/PUT requests must send <code class="ic">Content-Type: application/json</code>.</p>
+  </section>
+
+  <hr class="dhr">
+
+  <section id="api-list-tables" class="sec">
+    <h1 class="page-title">Tables</h1>
+    <h2 class="dh"><span class="mb mb-get">GET</span>/api/tables</h2>
+    <p class="dp">Returns a list of all table names in the database.</p>
+    <h3 style="font-size:13px;font-weight:600;margin:.75rem 0 .4rem;color:var(--muted)">Response</h3>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>{
+  <span class="str">"tables"</span>: [<span class="str">"users"</span>, <span class="str">"products"</span>]
+}</pre>
+    <h3 style="font-size:13px;font-weight:600;margin:.75rem 0 .4rem;color:var(--muted)">Example</h3>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button><span class="cm"># curl</span>
+curl http://localhost:8000/api/tables
+
+<span class="cm"># JavaScript</span>
+<span class="kw">const</span> res  = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/tables'</span>)
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>()
+console.<span class="fn">log</span>(data.tables)  <span class="cm">// ['users', 'products']</span></pre>
+  </section>
+
+  <section id="api-create-table" class="sec">
+    <h2 class="dh"><span class="mb mb-post">POST</span>/api/tables/{name}</h2>
+    <p class="dp">Create a new table. Returns 409 if table already exists.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button"><span class="cm"># curl</span>
+curl -X POST http://localhost:8000/api/tables/users
+
+<span class="cm"># Response</span>
+{ <span class="str">"message"</span>: <span class="str">"Table 'users' created."</span>, <span class="str">"table"</span>: <span class="str">"users"</span> }</pre>
+  </section>
+
+  <section id="api-drop-table" class="sec">
+    <h2 class="dh"><span class="mb mb-del">DEL</span>/api/tables/{name}</h2>
+    <p class="dp">Permanently delete a table and all its records.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>curl -X DELETE http://localhost:8000/api/tables/users</pre>
+    <div class="callout c-warn"><span class="ci">⚠️</span><span>This is permanent. All records in the table will be deleted.</span></div>
+  </section>
+
+  <hr class="dhr">
+
+  <section id="api-get-records" class="sec">
+    <h1 class="page-title">Records</h1>
+    <h2 class="dh"><span class="mb mb-get">GET</span>/api/tables/{name}/records</h2>
+    <p class="dp">Get all records from a table. Supports filtering, sorting, and limiting via query params.</p>
+    <h3 style="font-size:13px;font-weight:600;margin:.75rem 0 .4rem;color:var(--muted)">Query parameters</h3>
+    <table class="dtbl">
+      <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>where</td><td>string</td><td>Filter condition e.g. <code class="ic">age&gt;18</code> or <code class="ic">city=Mumbai</code></td></tr>
+        <tr><td>order</td><td>string</td><td>Field name to sort by e.g. <code class="ic">name</code></td></tr>
+        <tr><td>desc</td><td>boolean</td><td>Sort descending. Default: false</td></tr>
+        <tr><td>limit</td><td>integer</td><td>Max records to return</td></tr>
+      </tbody>
+    </table>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button><span class="cm"># All records</span>
+curl http://localhost:8000/api/tables/users/records
+
+<span class="cm"># WHERE age > 18</span>
+curl "http://localhost:8000/api/tables/users/records?where=age>18"
+
+<span class="cm"># Filter + sort + limit</span>
+curl "http://localhost:8000/api/tables/users/records?where=age>18&order=name&limit=5"
+
+<span class="cm"># Sort descending</span>
+curl "http://localhost:8000/api/tables/users/records?order=age&desc=true"
+
+<span class="cm"># JavaScript</span>
+<span class="kw">const</span> res  = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/tables/users/records?where=age>18&order=name&limit=5'</span>)
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>()
+console.<span class="fn">log</span>(data.records)
+
+<span class="cm"># Response shape</span>
+{
+  <span class="str">"table"</span>:   <span class="str">"users"</span>,
+  <span class="str">"count"</span>:   <span class="num">3</span>,
+  <span class="str">"records"</span>: [{ <span class="str">"_id"</span>: <span class="num">1</span>, <span class="str">"name"</span>: <span class="str">"Alice"</span>, ... }]
+}</pre>
+  </section>
+
+  <section id="api-get-one" class="sec">
+    <h2 class="dh"><span class="mb mb-get">GET</span>/api/tables/{name}/records/{id}</h2>
+    <p class="dp">Get a single record by its <code class="ic">_id</code>. Returns 404 if not found.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>curl http://localhost:8000/api/tables/users/records/1
+
+<span class="cm"># Response</span>
+{ <span class="str">"record"</span>: { <span class="str">"_id"</span>: <span class="num">1</span>, <span class="str">"name"</span>: <span class="str">"Alice"</span>, <span class="str">"age"</span>: <span class="num">25</span> } }</pre>
+  </section>
+
+  <section id="api-insert" class="sec">
+    <h2 class="dh"><span class="mb mb-post">POST</span>/api/tables/{name}/records</h2>
+    <p class="dp">Insert a new record. Send a JSON body with a <code class="ic">data</code> key.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button><span class="cm"># curl</span>
+curl -X POST http://localhost:8000/api/tables/users/records \
+  -H "Content-Type: application/json" \
+  -d '{"data": {"name": "Alice", "age": 25, "city": "Mumbai"}}'
+
+<span class="cm"># JavaScript fetch</span>
+<span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/tables/users/records'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+  body: <span class="fn">JSON.stringify</span>({ data: { name: <span class="str">'Alice'</span>, age: <span class="num">25</span>, city: <span class="str">'Mumbai'</span> } })
+})
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>()
+console.<span class="fn">log</span>(data.record._id)  <span class="cm">// 1</span>
+
+<span class="cm"># Response</span>
+{
+  <span class="str">"message"</span>: <span class="str">"Record inserted."</span>,
+  <span class="str">"record"</span>:  { <span class="str">"name"</span>: <span class="str">"Alice"</span>, <span class="str">"age"</span>: <span class="num">25</span>, <span class="str">"_id"</span>: <span class="num">1</span>, <span class="str">"_created_at"</span>: <span class="str">"..."</span> }
+}</pre>
+  </section>
+
+  <section id="api-update" class="sec">
+    <h2 class="dh"><span class="mb mb-put">PUT</span>/api/tables/{name}/records/{id}</h2>
+    <p class="dp">Update fields of a record by <code class="ic">_id</code>. Only include fields you want to change.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button>curl -X PUT http://localhost:8000/api/tables/users/records/1 \
+  -H "Content-Type: application/json" \
+  -d '{"data": {"city": "Delhi", "age": 26}}'
+
+<span class="cm"># Response</span>
+{ <span class="str">"message"</span>: <span class="str">"Record updated."</span>, <span class="str">"updated"</span>: <span class="num">1</span> }</pre>
+  </section>
+
+  <section id="api-delete" class="sec">
+    <h2 class="dh"><span class="mb mb-del">DEL</span>/api/tables/{name}/records/{id}</h2>
+    <p class="dp">Delete a record by <code class="ic">_id</code>. Returns 404 if not found.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button">curl -X DELETE http://localhost:8000/api/tables/users/records/1
+
+<span class="cm"># Response</span>
+{ <span class="str">"message"</span>: <span class="str">"Record deleted."</span>, <span class="str">"deleted"</span>: <span class="num">1</span> }</pre>
+  </section>
+
+  <hr class="dhr">
+
+  <section id="api-query" class="sec">
+    <h1 class="page-title">Query endpoint</h1>
+    <h2 class="dh"><span class="mb mb-post">POST</span>/api/query</h2>
+    <p class="dp">Run a SQL-like query string. The most powerful endpoint — combine SELECT, WHERE, ORDER BY, and LIMIT.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button">curl -X POST http://localhost:8000/api/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SELECT * FROM users WHERE age > 18 ORDER BY name LIMIT 5"}'
+
+<span class="cm"># JavaScript</span>
+<span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/query'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+  body: <span class="fn">JSON.stringify</span>({ query: <span class="str">'SELECT * FROM users WHERE age > 18 ORDER BY name LIMIT 5'</span> })
+})
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>()
+
+<span class="cm"># Response</span>
+{
+  <span class="str">"query"</span>:   <span class="str">"SELECT * FROM users WHERE age > 18 ORDER BY name LIMIT 5"</span>,
+  <span class="str">"count"</span>:   <span class="num">3</span>,
+  <span class="str">"records"</span>: [...]
+}</pre>
+  </section>
+
+  <section id="api-stats" class="sec">
+    <h2 class="dh"><span class="mb mb-get">GET</span>/api/stats</h2>
+    <p class="dp">Get total tables, total records, and per-table record counts.</p>
+    <pre class="cb"><button class="cpb" onclick="cp(this)">copy</button">curl http://localhost:8000/api/stats
+
+<span class="cm"># Response</span>
+{
+  <span class="str">"total_tables"</span>:  <span class="num">2</span>,
+  <span class="str">"total_records"</span>: <span class="num">15</span>,
+  <span class="str">"tables"</span>: { <span class="str">"users"</span>: <span class="num">7</span>, <span class="str">"products"</span>: <span class="num">6</span> }
+}</pre>
+  </section>
+
+</main>
+
+<aside class="toc">
+  <div class="toc-lbl">API Reference</div>
+  <a class="toc-a" onclick="sa('api-overview')">Overview</a>
+  <a class="toc-a" onclick="sa('api-auth')">Base URL</a>
+  <a class="toc-a" onclick="sa('api-list-tables')">List tables</a>
+  <a class="toc-a" onclick="sa('api-create-table')">Create table</a>
+  <a class="toc-a" onclick="sa('api-drop-table')">Drop table</a>
+  <a class="toc-a" onclick="sa('api-get-records')">Get records</a>
+  <a class="toc-a" onclick="sa('api-get-one')">Get by ID</a>
+  <a class="toc-a" onclick="sa('api-insert')">Insert record</a>
+  <a class="toc-a" onclick="sa('api-update')">Update record</a>
+  <a class="toc-a" onclick="sa('api-delete')">Delete record</a>
+  <a class="toc-a" onclick="sa('api-query')">Run query</a>
+  <a class="toc-a" onclick="sa('api-stats')">Stats</a>
+</aside>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE 3 — PLAYGROUND
+══════════════════════════════════════════════ -->
+<div class="page" id="page-playground">
+<div class="pg-page">
+  <div class="pg-header">
+    <h2>Interactive Playground</h2>
+    <p>Write queries, insert data, explore — no install needed. Sample data preloaded.</p>
+  </div>
+  <div class="pg-grid">
+
+    <!-- Left panel -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+
+      <!-- DB info -->
+      <div class="pg-panel">
+        <div class="pg-panel-hdr">Database</div>
+        <div class="db-info">
+          <div class="db-stat"><span class="db-stat-lbl">Tables</span><span class="db-stat-val" id="pg-ntables">2</span></div>
+          <div class="db-stat"><span class="db-stat-lbl">Records</span><span class="db-stat-val" id="pg-nrecords">13</span></div>
+          <div class="db-stat"><span class="db-stat-lbl">Storage</span><span class="db-stat-val">In-memory</span></div>
+        </div>
+        <div id="pg-tables-list"></div>
+      </div>
+
+      <!-- History -->
+      <div class="pg-panel">
+        <div class="pg-panel-hdr">Query history</div>
+        <div id="pg-history"><div class="hist-empty">No queries yet</div></div>
+      </div>
+
+    </div>
+
+    <!-- Editor -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="editor-wrap">
+        <div class="editor-topbar">
+          <div class="e-dot e-dot-r"></div>
+          <div class="e-dot e-dot-y"></div>
+          <div class="e-dot e-dot-g"></div>
+          <span class="e-file">playground — NeevDB v2.0</span>
+          <div class="mode-toggle">
+            <button class="mode-btn active" id="mode-query" onclick="setMode('query')">Query</button>
+            <button class="mode-btn" id="mode-insert" onclick="setMode('insert')">Insert</button>
+            <button class="mode-btn" id="mode-api" onclick="setMode('api')">API</button>
+          </div>
+        </div>
+
+        <!-- Query mode -->
+        <div id="m-query">
+          <div class="chips">
+            <span class="chip cat">SELECT</span>
+            <button class="chip" onclick="pgq('SELECT * FROM users')">SELECT *</button>
+            <button class="chip" onclick="pgq('SELECT * FROM users WHERE age > 18')">WHERE age&gt;18</button>
+            <button class="chip" onclick="pgq('SELECT name, city FROM users ORDER BY age DESC')">ORDER BY</button>
+            <button class="chip" onclick="pgq('SELECT * FROM users LIMIT 3')">LIMIT 3</button>
+            <button class="chip" onclick="pgq('SELECT * FROM users WHERE city = Mumbai')">city=Mumbai</button>
+            <span class="chip cat">PRODUCTS</span>
+            <button class="chip" onclick="pgq('SELECT * FROM products')">All products</button>
+            <button class="chip" onclick="pgq('SELECT * FROM products WHERE price < 5000 ORDER BY price')">price&lt;5k</button>
+            <button class="chip" onclick="pgq('SELECT name, price FROM products ORDER BY price DESC LIMIT 3')">Top 3</button>
+            <span class="chip cat">OTHER</span>
+            <button class="chip" onclick="pgq('SHOW TABLES')">SHOW TABLES</button>
+            <button class="chip" onclick="pgq('SELECT * FROM users WHERE age >= 25 ORDER BY name LIMIT 3')">age≥25</button>
+          </div>
+          <div class="editor-body">
+            <div class="e-pane">
+              <div class="e-pane-hdr"><span>Query</span><span style="color:var(--accent-text);font-size:10px">Ctrl+Enter</span></div>
+              <textarea id="pgq" spellcheck="false">SELECT * FROM users</textarea>
+              <div class="e-runbar">
+                <button class="run-btn" onclick="runPg()">▶ Run</button>
+                <span style="font-size:11px;color:var(--hint);font-family:var(--mono)">Ctrl+Enter</span>
+                <span id="pg-rc" style="margin-left:auto;font-size:11px;color:var(--green-text);font-family:var(--mono)"></span>
+              </div>
+            </div>
+            <div class="e-pane e-pane-r">
+              <div class="result-tabs">
+                <button class="rtab active" onclick="setResultTab('table')" id="rt-table">Table</button>
+                <button class="rtab" onclick="setResultTab('json')" id="rt-json">JSON</button>
+              </div>
+              <div id="pgout"><span class="out-dim">// Run a query to see results</span></div>
+              <div id="pgout-json"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Insert mode -->
+        <div id="m-insert" style="display:none;padding:1rem">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Insert a record into any table.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Table</label>
+              <select id="ins-table" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg);outline:none">
+                <option value="users">users</option>
+                <option value="products">products</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:flex-end">
+              <button class="btn btn-p" style="width:100%" onclick="runInsert()">Insert record</button>
+            </div>
+          </div>
+          <label style="font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Record data (JSON)</label>
+          <textarea id="ins-json" style="width:100%;height:160px;padding:10px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg);outline:none;resize:vertical;line-height:1.7" spellcheck="false">{"name": "Alice", "age": 25, "city": "Mumbai"}</textarea>
+          <div id="ins-result" style="margin-top:10px;font-family:var(--mono);font-size:12px;min-height:40px"></div>
+        </div>
+
+        <!-- API mode -->
+        <div id="m-api" style="display:none;padding:1rem">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Try calling the NeevDB REST API. <strong>Start the server first:</strong> <code class="ic">python start.py</code></p>
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:8px;margin-bottom:10px;align-items:center">
+            <select id="api-method" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--text);outline:none">
+              <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option>
+            </select>
+            <input id="api-url" value="http://localhost:8000/api/tables/users/records" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg);outline:none;width:100%">
+          </div>
+          <label style="font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Body (for POST/PUT)</label>
+          <textarea id="api-body" style="width:100%;height:80px;padding:10px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg);outline:none;resize:vertical;line-height:1.7" spellcheck="false">{"data": {"name": "Alice", "age": 25}}</textarea>
+          <button class="btn btn-p" style="margin-top:8px" onclick="runApiCall()">Send request</button>
+          <div style="margin-top:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Quick endpoints</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">
+              <button class="chip" onclick="setApi('GET','http://localhost:8000/api/stats')">GET /stats</button>
+              <button class="chip" onclick="setApi('GET','http://localhost:8000/api/tables')">GET /tables</button>
+              <button class="chip" onclick="setApi('GET','http://localhost:8000/api/tables/users/records')">GET /records</button>
+              <button class="chip" onclick="setApi('GET','http://localhost:8000/api/tables/users/records?where=age>18')">?where=age&gt;18</button>
+              <button class="chip" onclick="setApi('POST','http://localhost:8000/api/query','')">POST /query</button>
+            </div>
+          </div>
+          <pre id="api-result" style="margin-top:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-family:var(--mono);font-size:12px;min-height:60px;overflow:auto;white-space:pre;line-height:1.7;color:var(--muted)">// Response appears here</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
 
 <script>
-// ── Scrolling ──
-function scrollTo(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'})}
+// ══ Page switching ════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const tabs = document.querySelectorAll('.nav-tab');
+  const map  = { docs: 0, api: 1, playground: 2 };
+  tabs[map[name]]?.classList.add('active');
+  if (name === 'playground') updatePgSidebar();
+}
 
-// ── Copy install cmd ──
-function copyCmd(){
+// ══ Sidebar scroll ════════════════════════════════════════
+function ss(id) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }); }
+function sa(id) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }); }
+
+// ══ Copy helpers ══════════════════════════════════════════
+function copyCmd() {
   navigator.clipboard.writeText('pip install neevdb');
-  const el=document.getElementById('clbl');
-  el.textContent='copied!';
-  setTimeout(()=>el.textContent='copy',2000);
+  const el = document.getElementById('iplbl');
+  el.textContent = 'copied!';
+  setTimeout(() => el.textContent = 'copy', 2000);
 }
-
-// ── Copy code blocks ──
-function cp(btn){
-  const pre=btn.parentElement;
-  const text=[...pre.childNodes].filter(n=>n.nodeType===3||n.tagName!=='BUTTON').map(n=>n.textContent).join('');
+function cp(btn) {
+  const pre  = btn.parentElement;
+  const text = [...pre.childNodes].filter(n => n.nodeType === 3 || n.tagName !== 'BUTTON').map(n => n.textContent).join('');
   navigator.clipboard.writeText(text.trim());
-  btn.textContent='copied!';
-  setTimeout(()=>btn.textContent='copy',2000);
+  btn.textContent = 'copied!';
+  setTimeout(() => btn.textContent = 'copy', 2000);
 }
 
-// ── In-browser DB ──
-const DB={
-  tables:{
-    users:[
-      {_id:1,name:"Alice",age:25,city:"Mumbai",_created_at:"2026-01-01"},
-      {_id:2,name:"Bob",age:17,city:"Delhi",_created_at:"2026-01-02"},
-      {_id:3,name:"Carol",age:30,city:"Pune",_created_at:"2026-01-03"},
-      {_id:4,name:"Dev",age:22,city:"Mumbai",_created_at:"2026-01-04"},
-      {_id:5,name:"Esha",age:19,city:"Delhi",_created_at:"2026-01-05"},
-      {_id:6,name:"Farhan",age:28,city:"Bangalore",_created_at:"2026-01-06"},
-      {_id:7,name:"Gita",age:35,city:"Chennai",_created_at:"2026-01-07"},
+// ══ In-browser DB ════════════════════════════════════════
+const DB = {
+  tables: {
+    users: [
+      { _id:1, name:'Alice',  age:25, city:'Mumbai',    _created_at:'2026-01-01' },
+      { _id:2, name:'Bob',    age:17, city:'Delhi',     _created_at:'2026-01-02' },
+      { _id:3, name:'Carol',  age:30, city:'Pune',      _created_at:'2026-01-03' },
+      { _id:4, name:'Dev',    age:22, city:'Mumbai',    _created_at:'2026-01-04' },
+      { _id:5, name:'Esha',   age:19, city:'Delhi',     _created_at:'2026-01-05' },
+      { _id:6, name:'Farhan', age:28, city:'Bangalore', _created_at:'2026-01-06' },
+      { _id:7, name:'Gita',   age:35, city:'Chennai',   _created_at:'2026-01-07' },
     ],
-    products:[
-      {_id:1,name:"Laptop",price:45000,category:"Electronics",stock:10},
-      {_id:2,name:"Phone",price:15000,category:"Electronics",stock:25},
-      {_id:3,name:"Headphones",price:2500,category:"Electronics",stock:50},
-      {_id:4,name:"Desk",price:8000,category:"Furniture",stock:5},
-      {_id:5,name:"Chair",price:3500,category:"Furniture",stock:12},
-      {_id:6,name:"Notebook",price:150,category:"Stationery",stock:100},
+    products: [
+      { _id:1, name:'Laptop',     price:45000, category:'Electronics', stock:10 },
+      { _id:2, name:'Phone',      price:15000, category:'Electronics', stock:25 },
+      { _id:3, name:'Headphones', price:2500,  category:'Electronics', stock:50 },
+      { _id:4, name:'Desk',       price:8000,  category:'Furniture',   stock:5  },
+      { _id:5, name:'Chair',      price:3500,  category:'Furniture',   stock:12 },
+      { _id:6, name:'Notebook',   price:150,   category:'Stationery',  stock:100},
     ]
   },
-  nextId:{users:8,products:7}
+  nextId: { users:8, products:7 }
 };
 
-const OPS={"=":(_a,b)=>String(_a)===String(b),"==":(_a,b)=>String(_a)===String(b),"!=":(_a,b)=>String(_a)!==String(b),">":(_a,b)=>parseFloat(_a)>parseFloat(b),"<":(_a,b)=>parseFloat(_a)<parseFloat(b),">=":(_a,b)=>parseFloat(_a)>=parseFloat(b),"<=":(_a,b)=>parseFloat(_a)<=parseFloat(b)};
+const OPS = {
+  '=':  (a,b) => String(a)===String(b),
+  '==': (a,b) => String(a)===String(b),
+  '!=': (a,b) => String(a)!==String(b),
+  '>':  (a,b) => parseFloat(a)>parseFloat(b),
+  '<':  (a,b) => parseFloat(a)<parseFloat(b),
+  '>=': (a,b) => parseFloat(a)>=parseFloat(b),
+  '<=': (a,b) => parseFloat(a)<=parseFloat(b),
+};
 
-function parse(raw){
-  const q=raw.trim(),up=q.toUpperCase();
-  if(up==="SHOW TABLES") return{type:"tables"};
-  if(up.startsWith("INSERT INTO")){
-    const m=q.match(/INSERT\s+INTO\s+(\w+)\s+(.+)/i);
-    if(!m)return{type:"error",msg:"Syntax: INSERT INTO table key=val"};
-    const t=m[1];
-    if(!DB.tables[t])return{type:"error",msg:`Table '${t}' not found.`};
-    const rec={};
-    for(const[,k,v]of m[2].matchAll(/(\w+)=(".*?"|'.*?'|\S+)/g)){
-      const val=v.replace(/^["']|["']$/g,'');
-      rec[k]=isNaN(val)?val:parseFloat(val);
+let lastResult = null;
+const history  = [];
+
+function parseQ(raw) {
+  const q = raw.trim(), up = q.toUpperCase();
+  if (up === 'SHOW TABLES') return { type:'tables' };
+  if (up.startsWith('INSERT INTO')) {
+    const m = q.match(/INSERT\s+INTO\s+(\w+)\s+(.+)/i);
+    if (!m) return { type:'error', msg:"Syntax: INSERT INTO table key=val" };
+    const t = m[1];
+    if (!DB.tables[t]) return { type:'error', msg:`Table '${t}' not found.` };
+    const rec = {};
+    for (const [,k,v] of m[2].matchAll(/(\w+)=(".*?"|'.*?'|\S+)/g)) {
+      const val = v.replace(/^["']|["']$/g,'');
+      rec[k] = isNaN(val) ? val : parseFloat(val);
     }
-    rec._id=DB.nextId[t]++;
-    rec._created_at=new Date().toISOString().slice(0,10);
+    rec._id = DB.nextId[t]++;
+    rec._created_at = new Date().toISOString().slice(0,10);
     DB.tables[t].push(rec);
-    return{type:"insert",rec};
+    updatePgSidebar();
+    return { type:'insert', rec };
   }
-  if(!up.startsWith("SELECT"))return{type:"error",msg:"Supported: SELECT, INSERT INTO, SHOW TABLES"};
-  let s=q;
-  let limit=null;
-  const lm=s.match(/LIMIT\s+(\d+)/i);
-  if(lm){limit=parseInt(lm[1]);s=s.slice(0,lm.index).trim();}
-  let ob=null,od="ASC";
-  const om=s.match(/ORDER\s+BY\s+(\w+)(\s+DESC|\s+ASC)?/i);
-  if(om){ob=om[1];if(om[2]&&om[2].trim().toUpperCase()==="DESC")od="DESC";s=s.slice(0,om.index).trim();}
-  let wh=null;
-  const wm=s.match(/WHERE\s+(.+)/i);
-  if(wm){wh=wm[1].trim();s=s.slice(0,wm.index).trim();}
-  const fm=s.match(/FROM\s+(\w+)/i);
-  if(!fm)return{type:"error",msg:"Missing FROM. Example: SELECT * FROM users"};
-  const t=fm[1];
-  if(!DB.tables[t])return{type:"error",msg:`Table '${t}' not found. Available: ${Object.keys(DB.tables).join(", ")}`};
-  s=s.slice(0,fm.index).trim();
-  const cm=s.match(/SELECT\s+(.+)/i);
-  let cols="*";
-  if(cm&&cm[1].trim()!=="*")cols=cm[1].split(",").map(c=>c.trim());
-  let rows=[...DB.tables[t]];
-  if(wh){
-    const p=wh.match(/^(\w+)\s*(==|!=|>=|<=|>|<|=)\s*(.+)$/);
-    if(!p)return{type:"error",msg:`Invalid WHERE: '${wh}'`};
-    const[,f,op,rv]=p;
-    const v=rv.replace(/^["']|["']$/g,'');
-    const cmp=OPS[op];
-    rows=rows.filter(r=>{try{return f in r&&cmp(r[f],v);}catch{return false;}});
+  if (!up.startsWith('SELECT')) return { type:'error', msg:'Supported: SELECT, INSERT INTO, SHOW TABLES' };
+  let s = q;
+  let limit = null;
+  const lm = s.match(/LIMIT\s+(\d+)/i);
+  if (lm) { limit = parseInt(lm[1]); s = s.slice(0,lm.index).trim(); }
+  let ob = null, od = 'ASC';
+  const om = s.match(/ORDER\s+BY\s+(\w+)(\s+DESC|\s+ASC)?/i);
+  if (om) { ob=om[1]; if(om[2]&&om[2].trim().toUpperCase()==='DESC') od='DESC'; s=s.slice(0,om.index).trim(); }
+  let wh = null;
+  const wm = s.match(/WHERE\s+(.+)/i);
+  if (wm) { wh=wm[1].trim(); s=s.slice(0,wm.index).trim(); }
+  const fm = s.match(/FROM\s+(\w+)/i);
+  if (!fm) return { type:'error', msg:'Missing FROM. Example: SELECT * FROM users' };
+  const t = fm[1];
+  if (!DB.tables[t]) return { type:'error', msg:`Table '${t}' not found. Available: ${Object.keys(DB.tables).join(', ')}` };
+  s = s.slice(0, fm.index).trim();
+  const cm = s.match(/SELECT\s+(.+)/i);
+  let cols = '*';
+  if (cm && cm[1].trim() !== '*') cols = cm[1].split(',').map(c=>c.trim());
+  let rows = [...DB.tables[t]];
+  if (wh) {
+    const p = wh.match(/^(\w+)\s*(==|!=|>=|<=|>|<|=)\s*(.+)$/);
+    if (!p) return { type:'error', msg:`Invalid WHERE: '${wh}'` };
+    const [,f,op,rv] = p;
+    const v = rv.replace(/^["']|["']$/g,'');
+    const cmp = OPS[op];
+    rows = rows.filter(r => { try { return f in r && cmp(r[f],v); } catch { return false; } });
   }
-  if(ob){
-    rows.sort((a,b)=>{
-      const av=a[ob]??"",bv=b[ob]??"";
-      if(!isNaN(av)&&!isNaN(bv))return od==="ASC"?av-bv:bv-av;
-      return od==="ASC"?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));
+  if (ob) {
+    rows.sort((a,b) => {
+      const av=a[ob]??"", bv=b[ob]??"";
+      if (!isNaN(av)&&!isNaN(bv)) return od==='ASC'?av-bv:bv-av;
+      return od==='ASC'?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));
     });
   }
-  if(limit!==null)rows=rows.slice(0,limit);
-  if(cols!=="*")rows=rows.map(r=>{const o={};cols.forEach(c=>{if(c in r)o[c]=r[c];});return o;});
-  return{type:"rows",rows};
+  if (limit!==null) rows = rows.slice(0,limit);
+  if (cols!=='*') rows = rows.map(r => { const o={}; cols.forEach(c=>{ if(c in r) o[c]=r[c]; }); return o; });
+  return { type:'rows', rows };
 }
 
-function render(res){
-  const out=document.getElementById("qout");
-  const rc=document.getElementById("rcount");
-  if(res.type==="error"){out.innerHTML=`<span class="pg-err">Error: ${res.msg}</span>`;rc.textContent="";return;}
-  if(res.type==="tables"){
-    out.innerHTML=`<span class="pg-ok">Tables:</span>\n`+Object.keys(DB.tables).map(t=>`  ${t}  (${DB.tables[t].length} rows)`).join("\n");rc.textContent="";return;
+function renderResult(res) {
+  const out = document.getElementById('pgout');
+  const outJ = document.getElementById('pgout-json');
+  const rc  = document.getElementById('pg-rc');
+  lastResult = res;
+
+  if (res.type==='error') {
+    out.innerHTML=`<span class="out-err">Error: ${res.msg}</span>`;
+    outJ.textContent='';
+    rc.textContent='';
+    return;
   }
-  if(res.type==="insert"){out.innerHTML=`<span class="pg-ok">Inserted _id=${res.rec._id}</span>\n`+JSON.stringify(res.rec,null,2);rc.textContent="";return;}
-  const{rows}=res;
-  rc.textContent=`${rows.length} row${rows.length!==1?"s":""}`;
-  if(!rows.length){out.innerHTML=`<span class="pg-dim">No records matched.</span>`;return;}
-  const ks=Object.keys(rows[0]);
-  const w={};
-  ks.forEach(k=>w[k]=Math.max(k.length,...rows.map(r=>String(r[k]??"").length))+2);
-  const hdr=ks.map(k=>`<span class="pg-col">${k.padEnd(w[k])}</span>`).join("  ");
-  const sep=`<span class="pg-sep">${ks.map(k=>"─".repeat(w[k])).join("  ")}</span>`;
-  const body=rows.map(r=>ks.map(k=>String(r[k]??"").padEnd(w[k])).join("  ")).join("\n");
-  out.innerHTML=hdr+"\n"+sep+"\n"+body;
+  if (res.type==='tables') {
+    const txt = `<span class="out-ok">Tables in database:</span>\n` +
+      Object.entries(DB.tables).map(([t,r])=>`  🗂  ${t}  (${r.length} records)`).join('\n');
+    out.innerHTML = txt;
+    outJ.textContent = JSON.stringify({tables: Object.keys(DB.tables)}, null, 2);
+    rc.textContent='';
+    return;
+  }
+  if (res.type==='insert') {
+    out.innerHTML=`<span class="out-ok">✓ Inserted _id=${res.rec._id}</span>\n`+JSON.stringify(res.rec,null,2);
+    outJ.textContent=JSON.stringify(res.rec,null,2);
+    rc.textContent='';
+    return;
+  }
+  const { rows } = res;
+  rc.textContent = `${rows.length} row${rows.length!==1?'s':''}`;
+  outJ.textContent = JSON.stringify(rows, null, 2);
+  if (!rows.length) { out.innerHTML=`<span class="out-dim">No records matched.</span>`; return; }
+  const cols = Object.keys(rows[0]);
+  const w    = {};
+  cols.forEach(c => w[c] = Math.max(c.length, ...rows.map(r=>String(r[c]??"").length))+2);
+  const hdr  = cols.map(c=>`<span class="out-col">${c.padEnd(w[c])}</span>`).join('  ');
+  const sep  = `<span class="out-sep">${cols.map(c=>'─'.repeat(w[c])).join('  ')}</span>`;
+  const body = rows.map(r=>cols.map(c=>String(r[c]??"").padEnd(w[c])).join('  ')).join('\n');
+  out.innerHTML = hdr+'\n'+sep+'\n'+body;
 }
 
-function runQ(){try{render(parse(document.getElementById("qinput").value.trim()));}catch(e){document.getElementById("qout").innerHTML=`<span class="pg-err">Error: ${e.message}</span>`;}}
-function qs(q){document.getElementById("qinput").value=q;runQ();}
-document.getElementById("qinput").addEventListener("keydown",e=>{if(e.ctrlKey&&e.key==="Enter"){e.preventDefault();runQ();}});
+function runPg() {
+  const q = document.getElementById('pgq').value.trim();
+  if (!q) return;
+  addHistory(q);
+  try { renderResult(parseQ(q)); } catch(e) { document.getElementById('pgout').innerHTML=`<span class="out-err">Error: ${e.message}</span>`; }
+}
+function pgq(q) { document.getElementById('pgq').value=q; runPg(); }
+document.addEventListener('keydown', e => { if(e.ctrlKey&&e.key==='Enter') runPg(); });
 
-// Active sidebar link on scroll
-const anchors=[...document.querySelectorAll(".section-anchor")];
-window.addEventListener("scroll",()=>{
-  let cur=null;
-  anchors.forEach(a=>{if(a.getBoundingClientRect().top<80)cur=a.id;});
-  document.querySelectorAll(".sidebar-link,.toc-link").forEach(l=>{
-    const match=l.getAttribute("onclick")?.includes(cur);
-    l.classList.toggle("active",!!match);
+// ══ Result tabs ═══════════════════════════════════════════
+function setResultTab(tab) {
+  document.getElementById('pgout').style.display      = tab==='table' ? 'block' : 'none';
+  document.getElementById('pgout-json').style.display = tab==='json'  ? 'block' : 'none';
+  document.getElementById('rt-table').classList.toggle('active', tab==='table');
+  document.getElementById('rt-json').classList.toggle('active',  tab==='json');
+}
+
+// ══ Modes ════════════════════════════════════════════════
+function setMode(m) {
+  ['query','insert','api'].forEach(x => {
+    document.getElementById('m-'+x).style.display = x===m ? 'block' : 'none';
+    document.getElementById('mode-'+x).classList.toggle('active', x===m);
   });
-},{ passive:true });
+}
 
-window.onload=()=>runQ();
+// ══ Insert mode ═══════════════════════════════════════════
+function runInsert() {
+  const table = document.getElementById('ins-table').value;
+  const res   = document.getElementById('ins-result');
+  let data;
+  try { data = JSON.parse(document.getElementById('ins-json').value); }
+  catch { res.innerHTML=`<span style="color:var(--red)">Invalid JSON!</span>`; return; }
+  if (!DB.tables[table]) { res.innerHTML=`<span style="color:var(--red)">Table '${table}' not found.</span>`; return; }
+  data._id = DB.nextId[table]++;
+  data._created_at = new Date().toISOString().slice(0,10);
+  DB.tables[table].push(data);
+  res.innerHTML=`<span style="color:var(--green)">✓ Inserted _id=${data._id} into '${table}'</span>`;
+  updatePgSidebar();
+}
+
+// ══ API mode ══════════════════════════════════════════════
+function setApi(method, url, body) {
+  document.getElementById('api-method').value = method;
+  document.getElementById('api-url').value    = url;
+  if (body !== undefined) document.getElementById('api-body').value = body;
+}
+async function runApiCall() {
+  const method = document.getElementById('api-method').value;
+  const url    = document.getElementById('api-url').value;
+  const body   = document.getElementById('api-body').value;
+  const result = document.getElementById('api-result');
+  result.style.color = 'var(--muted)';
+  result.textContent = 'Sending...';
+  try {
+    const opts = { method, headers: {'Content-Type':'application/json'} };
+    if (['POST','PUT'].includes(method) && body.trim()) opts.body = body;
+    const r = await fetch(url, opts);
+    const d = await r.json();
+    result.textContent = JSON.stringify(d, null, 2);
+    result.style.color = r.ok ? 'var(--green-text)' : 'var(--red)';
+  } catch(e) {
+    result.textContent = `Error: ${e.message}\n\nMake sure the server is running:\npython start.py`;
+    result.style.color = 'var(--red)';
+  }
+}
+
+// ══ History ═══════════════════════════════════════════════
+function addHistory(q) {
+  history.unshift({ q, time: new Date().toLocaleTimeString() });
+  if (history.length > 10) history.pop();
+  const el = document.getElementById('pg-history');
+  el.innerHTML = history.map(h =>
+    `<div class="hist-item" onclick="pgq(${JSON.stringify(h.q)})">
+      <span class="hist-q">${h.q}</span>
+      <span class="hist-time">${h.time}</span>
+    </div>`
+  ).join('');
+}
+
+// ══ Playground sidebar ════════════════════════════════════
+function updatePgSidebar() {
+  const totalRecords = Object.values(DB.tables).reduce((a,b) => a+b.length, 0);
+  document.getElementById('pg-ntables').textContent  = Object.keys(DB.tables).length;
+  document.getElementById('pg-nrecords').textContent = totalRecords;
+  document.getElementById('pg-tables-list').innerHTML = Object.entries(DB.tables).map(([t,r]) =>
+    `<div class="tbl-entry" onclick="pgq('SELECT * FROM ${t}')">
+      <span class="tbl-name">${t}</span>
+      <span class="tbl-cnt">${r.length}</span>
+    </div>`
+  ).join('');
+}
+
+// ══ Init ══════════════════════════════════════════════════
+updatePgSidebar();
+runPg();
 </script>
 </body>
 </html>
