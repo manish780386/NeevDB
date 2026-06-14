@@ -112,7 +112,7 @@ python start.py mydata.json
 
 Browser opens automatically at `http://localhost:8000` with the dashboard.
 
-### From Python:
+### From Python
 
 ```python
 from neevdb.server import start
@@ -121,27 +121,27 @@ start(db_path="mydata.json", host="0.0.0.0", port=8000)
 
 ### API Endpoints
 
-| Method   | Endpoint                           | Description              |
-|----------|------------------------------------|--------------------------|
-| GET      | `/api`                             | Health check             |
-| GET      | `/api/stats`                       | Database statistics      |
-| GET      | `/api/tables`                      | List all tables          |
-| POST     | `/api/tables/{name}`               | Create a table           |
-| DELETE   | `/api/tables/{name}`               | Drop a table             |
-| GET      | `/api/tables/{name}/records`       | Get records (+ filters)  |
-| GET      | `/api/tables/{name}/records/{id}`  | Get record by ID         |
-| POST     | `/api/tables/{name}/records`       | Insert a record          |
-| PUT      | `/api/tables/{name}/records/{id}`  | Update a record          |
-| DELETE   | `/api/tables/{name}/records/{id}`  | Delete a record          |
-| POST     | `/api/query`                       | Run SQL-like query       |
+| Method | Endpoint                          | Description             |
+|--------|-----------------------------------|-------------------------|
+| GET    | `/api`                            | Health check            |
+| GET    | `/api/stats`                      | Database statistics     |
+| GET    | `/api/tables`                     | List all tables         |
+| POST   | `/api/tables/{name}`              | Create a table          |
+| DELETE | `/api/tables/{name}`              | Drop a table            |
+| GET    | `/api/tables/{name}/records`      | Get records (+ filters) |
+| GET    | `/api/tables/{name}/records/{id}` | Get record by ID        |
+| POST   | `/api/tables/{name}/records`      | Insert a record         |
+| PUT    | `/api/tables/{name}/records/{id}` | Update a record         |
+| DELETE | `/api/tables/{name}/records/{id}` | Delete a record         |
+| POST   | `/api/query`                      | Run SQL-like query      |
 
 ### Query parameters for GET /records
 
 ```
-?where=age>18          → Filter records
-?order=name            → Sort by field
-?desc=true             → Sort descending
-?limit=5               → Max records
+?where=age>18     → Filter records
+?order=name       → Sort by field
+?desc=true        → Sort descending
+?limit=5          → Max records to return
 ```
 
 ### Use from any frontend
@@ -156,15 +156,17 @@ console.log(data.records)
 await fetch('http://localhost:8000/api/tables/users/records', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ data: { name: 'Alice', age: 25 } })
+  body: JSON.stringify({ data: { name: 'Alice', age: 25, city: 'Mumbai' } })
 })
 
-// Run a query
+// Run a SQL-like query
 const res = await fetch('http://localhost:8000/api/query', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ query: 'SELECT * FROM users WHERE age > 18 ORDER BY name LIMIT 5' })
 })
+const data = await res.json()
+console.log(data.records)
 ```
 
 ---
@@ -200,6 +202,13 @@ python tests/test_core.py
 python tests/test_v2.py
 ```
 
+Expected output:
+```
+══════════════════════════════════════════
+  All tests PASSED! NeevDB is solid! 🚀
+══════════════════════════════════════════
+```
+
 ---
 
 ## 🛠️ How It Works
@@ -219,19 +228,26 @@ Your Code / CLI / Browser
                   └──► Dashboard HTML  ← Browser UI
 ```
 
+- **Storage layer** — All data saved in a human-readable `.json` file
+- **Core engine** — Manages tables and records, syncs to disk on every change
+- **Query engine** — Parses query strings using regex, executes filters/sort/limit
+- **CLI shell** — Interactive terminal with a `while True` input loop
+- **REST API** — Full FastAPI server with CORS support, auto docs at `/docs`
+- **Dashboard** — Browser UI to view, insert, edit, delete records visually
+
 ---
 
 ## 📦 Zero Dependencies (Core)
 
-| Module     | Used for                    |
-|------------|-----------------------------|
-| `json`     | Saving and loading data     |
-| `os`       | File path checks            |
-| `re`       | Query string parsing        |
-| `datetime` | Auto-generating timestamps  |
-| `sys`      | CLI argument handling       |
+| Module     | Used for                   |
+|------------|----------------------------|
+| `json`     | Saving and loading data    |
+| `os`       | File path checks           |
+| `re`       | Query string parsing       |
+| `datetime` | Auto-generating timestamps |
+| `sys`      | CLI argument handling      |
 
-Optional server dependencies: `fastapi`, `uvicorn`
+Optional server: `pip install neevdb[server]` installs `fastapi` + `uvicorn`
 
 ---
 
@@ -240,34 +256,44 @@ Optional server dependencies: `fastapi`, `uvicorn`
 **Manish Dange** — built NeevDB from scratch as a learning project.
 "Neev" means foundation in Hindi — this is the foundation of something bigger.
 
+- GitHub: [github.com/manish780386/NeevDB](https://github.com/manish780386/NeevDB)
+- PyPI: [pypi.org/project/neevdb](https://pypi.org/project/neevdb)
+
 ---
 
 ## 📌 Changelog
 
-### v3.0.1
-- Fixed bug and errors
+### v3.0.3 — Latest ✅
+- Fixed `pip install neevdb[server]` — no more warnings
+- Removed conflicting `setup.py` — now uses only `pyproject.toml`
+- `[server]` optional dependency now correctly installs `fastapi` + `uvicorn`
+- Dashboard auto-discovery from any folder
+
+### v3.0.2
+- Version bump with pyproject.toml improvements
 
 ### v3.0.1
 - Fixed dashboard loading from any folder
 - API endpoints unified under `/api/` prefix
 - `start.py` always runs from correct directory
-
+- Improved error messages
 
 ### v3.0.0
-- Fixed dashboard loading from any folder
-- Improved error messages
+- Major release with REST API server
+- Browser dashboard UI (`dashboard.html`)
+- `from neevdb.server import start` — one line server launch
+- `python start.py` — one command to open dashboard in browser
 
 ### v2.0.0
 - Optional REST API server (`pip install neevdb[server]`)
-- `from neevdb.server import start` — one line server start
-- Dashboard HTML UI
 - Full test suite (50+ tests)
+- `server.py` module added to neevdb package
 
 ### v1.0.0
 - JSON file storage
 - Tables, CRUD operations
-- SQL-like query engine (SELECT/WHERE/ORDER BY/LIMIT)
-- Interactive CLI shell
+- SQL-like query engine (SELECT / WHERE / ORDER BY / LIMIT)
+- Interactive CLI shell (`cli.py`)
 - 12 passing tests
 
 ---
@@ -275,10 +301,11 @@ Optional server dependencies: `fastapi`, `uvicorn`
 ## 📌 Roadmap
 
 - [x] Phase 1 — JSON storage, Tables, CRUD
-- [x] Phase 2 — Query Engine (SELECT/WHERE/ORDER BY/LIMIT)
+- [x] Phase 2 — Query Engine (SELECT / WHERE / ORDER BY / LIMIT)
 - [x] Phase 3 — Interactive CLI Shell
 - [x] Phase 4 — PyPI publish (`pip install neevdb`)
 - [x] Phase 5 — REST API server + Browser Dashboard
-- [ ] Phase 6 — Indexes for faster queries
-- [ ] Phase 7 — Multi-table JOIN support
-- [ ] Phase 8 — Deploy to cloud (Railway/Render)
+- [x] Phase 6 — Clean packaging (`pip install neevdb[server]`)
+- [ ] Phase 7 — Indexes for faster queries
+- [ ] Phase 8 — Multi-table JOIN support
+- [ ] Phase 9 — Deploy to cloud (Railway / Render)
