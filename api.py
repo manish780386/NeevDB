@@ -1,5 +1,5 @@
 """
-NeevDB - REST API Server v3.0.1
+NeevDB - REST API Server v3.0.2
 Run via: python start.py
 """
 
@@ -19,7 +19,7 @@ db      = NeevDB(DB_PATH)
 app = FastAPI(
     title="NeevDB API",
     description="A lightweight REST API built on top of NeevDB — your own database engine.",
-    version="3.0.1",
+    version="3.0.2",
 )
 
 app.add_middleware(
@@ -49,7 +49,7 @@ def serve_dashboard():
         return FileResponse(path)
     return JSONResponse({
         "name":    "NeevDB API",
-        "version": "3.0.1",
+        "version": "3.0.2",
         "status":  "running",
         "docs":    "/docs",
         "note":    "Place dashboard.html next to api.py to enable the dashboard UI.",
@@ -96,7 +96,7 @@ def root():
     """API health check."""
     return {
         "name":    "NeevDB API",
-        "version": "3.0.1",
+        "version": "3.0.2",
         "status":  "running",
         "db":      DB_PATH,
         "docs":    "/docs",

@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setup(
     name="neevdb",
-    version="3.0.1",
+    version="3.0.2",
     author="Manish Dange",
     description="A lightweight file-based database engine built with pure Python",
     long_description=long_description,

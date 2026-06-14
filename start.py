@@ -1,5 +1,5 @@
 """
-NeevDB v3.0.0 — One command starter
+NeevDB v3.0.2 — One command starter
 Run: python start.py
 Run with custom DB: python start.py mydata.json
 """
@@ -30,7 +30,7 @@ def main():
     os.environ["NEEVDB_PATH"] = db_path
 
     print("\n" + "=" * 52)
-    print("  NeevDB v3.0.0 — Starting server...")
+    print("  NeevDB v3.0.2 — Starting server...")
     print("=" * 52)
     print(f"  Database  : {db_path}")
     print(f"  Dashboard : http://localhost:8000")

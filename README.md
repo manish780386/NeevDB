@@ -245,6 +245,9 @@ Optional server dependencies: `fastapi`, `uvicorn`
 ## 📌 Changelog
 
 ### v3.0.1
+- Fixed bug and errors
+
+### v3.0.1
 - Fixed dashboard loading from any folder
 - API endpoints unified under `/api/` prefix
 - `start.py` always runs from correct directory

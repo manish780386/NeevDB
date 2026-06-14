@@ -4,7 +4,7 @@ build-backend = "setuptools.backends.legacy:build"
 
 [project]
 name = "neevdb"
-version = "3.0.1"
+version = "3.0.2"
 authors = [
   { name = "Manish Dange" },
 ]
@@ -23,10 +23,8 @@ classifiers = [
     "Intended Audience :: Education",
 ]
 
-# Core has zero dependencies
 dependencies = []
 
-# Optional: install FastAPI server support
 [project.optional-dependencies]
 server = [
     "fastapi>=0.100.0",
@@ -34,8 +32,8 @@ server = [
 ]
 
 [project.urls]
-Homepage   = "https://github.com/manish780386/NeevDB"
-Repository = "https://github.com/manish780386/NeevDB"
+Homepage     = "https://github.com/manish780386/NeevDB"
+Repository   = "https://github.com/manish780386/NeevDB"
 "Bug Tracker" = "https://github.com/manish780386/NeevDB/issues"
 
 [project.scripts]
