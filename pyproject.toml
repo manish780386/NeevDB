@@ -23,10 +23,8 @@ classifiers = [
     "Intended Audience :: Education",
 ]
 
-# Core has ZERO dependencies
 dependencies = []
 
-# Optional server support
 [project.optional-dependencies]
 server = [
     "fastapi>=0.100.0",
